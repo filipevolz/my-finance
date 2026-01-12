@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { Avatar } from '@/components/ui/avatar';
 
 export const DashboardWrapper = styled.div`
   min-height: 100vh;
@@ -94,6 +95,21 @@ export const IconButton = styled.button`
   &:focus-visible {
     outline: 0.125rem solid ${(props) => props.theme.primary};
     outline-offset: 0.125rem;
+  }
+`;
+
+export const StyledAvatar = styled(Avatar)`
+  border-radius: 50%;
+  overflow: hidden;
+
+  [data-slot='avatar-fallback'] {
+    background-color: ${(props) => props.theme.primary};
+    color: ${(props) => props.theme.text};
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 `;
 
@@ -352,6 +368,7 @@ export const CategoryIcon = styled.div<{ $color?: string }>`
   border-radius: 50%;
   background-color: ${(props) =>
     props.$color ? props.$color : props.theme.surfaceSecondary};
+  color: ${(props) => props.theme.text};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -464,9 +481,13 @@ export const TransactionAvatar = styled.div`
 `;
 
 export const TransactionDescription = styled.div`
+  color: ${(props) => props.theme.text};
+  font-size: 0.875rem;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  transition: color 0.3s ease;
 
   strong {
     color: ${(props) => props.theme.text};

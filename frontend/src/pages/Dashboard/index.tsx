@@ -18,7 +18,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Logo } from '../../components/Logo';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -77,6 +77,7 @@ import {
   TableEmptyCell,
   EmptyStateText,
   TransactionCellContent,
+  StyledAvatar,
 } from './styles';
 
 type Period = 'this-month' | 'last-month' | 'this-year' | 'last-12-months';
@@ -329,7 +330,7 @@ export function Dashboard() {
           <IconButton type="button" aria-label="Configurações">
             <Settings size={20} />
           </IconButton>
-          <Avatar>
+          <StyledAvatar>
             <AvatarFallback>
               {user.name
                 .split(' ')
@@ -338,7 +339,7 @@ export function Dashboard() {
                 .toUpperCase()
                 .slice(0, 2)}
             </AvatarFallback>
-          </Avatar>
+          </StyledAvatar>
         </HeaderActions>
       </DashboardHeader>
       <DashboardMain>
@@ -421,7 +422,7 @@ export function Dashboard() {
             <StatCard>
               <StatCardHeader>
                 <StatCardTitle>Despesas</StatCardTitle>
-                <StatCardChange $positive={stats.expenseChange >= 0}>
+                <StatCardChange $positive={stats.expenseChange <= 0}>
                   {stats.expenseChange >= 0 ? (
                     <TrendingUp size={14} />
                   ) : (
@@ -580,6 +581,7 @@ export function Dashboard() {
                             <IconRenderer
                               iconName={transaction.categoryIcon}
                               size={20}
+                              color="currentColor"
                               fallback={<span>📁</span>}
                             />
                           </CategoryIcon>
