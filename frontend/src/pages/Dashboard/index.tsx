@@ -1,24 +1,23 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
-  Settings,
-  Bell,
-  Calendar,
+  Calendar as CalendarIcon,
   TrendingUp,
   TrendingDown,
   Plus,
   Minus,
-  Moon,
-  Sun,
   MoreVertical,
   Pencil,
   Trash2,
+  X,
 } from 'lucide-react';
+import type { DateRange } from 'react-day-picker';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Logo } from '../../components/Logo';
-import { AvatarFallback } from '@/components/ui/avatar';
+import { Header } from '../../components/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -26,6 +25,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { AddIncomeModal } from '../../components/AddIncomeModal';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { incomesService } from '../../services/incomes.service';
@@ -33,11 +38,6 @@ import { expensesService } from '../../services/expenses.service';
 import { IconRenderer } from '../../utils/iconMapper';
 import {
   DashboardWrapper,
-  DashboardHeader,
-  NavMenu,
-  NavItem,
-  HeaderActions,
-  IconButton,
   DashboardMain,
   DashboardContent,
   WelcomeSection,
@@ -45,6 +45,10 @@ import {
   PeriodSelector,
   PeriodButton,
   PeriodSelectButton,
+  PeriodSelectWrapper,
+  DatePickerTriggerButton,
+  ClearDateRangeButton,
+  ViewMoreButtonContainer,
   StatsGrid,
   StatCard,
   StatCardHeader,
@@ -77,7 +81,6 @@ import {
   TableEmptyCell,
   EmptyStateText,
   TransactionCellContent,
-  StyledAvatar,
 } from './styles';
 
 type Period = 'this-month' | 'last-month' | 'this-year' | 'last-12-months';
@@ -85,9 +88,11 @@ type Period = 'this-month' | 'last-month' | 'this-year' | 'last-12-months';
 export function Dashboard() {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>('this-month');
-  const [activeNav, setActiveNav] = useState('overview');
+  const { theme } = useTheme();
+  const [selectedPeriod, setSelectedPeriod] = useState<Period | undefined>(
+    undefined,
+  );
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
@@ -131,7 +136,11 @@ export function Dashboard() {
 
   const loadStats = useCallback(async () => {
     try {
-      const response = await incomesService.getStats(selectedPeriod);
+      const response = await incomesService.getStats(
+        selectedPeriod,
+        dateRange?.from,
+        dateRange?.to,
+      );
       // Converter centavos para reais
       const statsInReais = {
         balance: response.data.balance / 100,
@@ -145,12 +154,16 @@ export function Dashboard() {
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     }
-  }, [selectedPeriod]);
+  }, [selectedPeriod, dateRange]);
 
   const loadCategories = useCallback(async () => {
     setIsLoadingCategories(true);
     try {
-      const response = await expensesService.getByCategory(selectedPeriod);
+      const response = await expensesService.getByCategory(
+        selectedPeriod,
+        dateRange?.from,
+        dateRange?.to,
+      );
       // Converter centavos para reais
       const categoriesInReais = response.data.map((cat) => ({
         ...cat,
@@ -163,7 +176,7 @@ export function Dashboard() {
     } finally {
       setIsLoadingCategories(false);
     }
-  }, [selectedPeriod]);
+  }, [selectedPeriod, dateRange]);
 
   const loadTransactions = useCallback(async () => {
     setIsLoadingTransactions(true);
@@ -280,68 +293,7 @@ export function Dashboard() {
 
   return (
     <DashboardWrapper>
-      <DashboardHeader>
-        <Logo size="medium" />
-        <NavMenu>
-          <NavItem
-            $active={activeNav === 'overview'}
-            onClick={() => setActiveNav('overview')}
-          >
-            Overview
-          </NavItem>
-          <NavItem
-            $active={activeNav === 'transactions'}
-            onClick={() => setActiveNav('transactions')}
-          >
-            Transactions
-          </NavItem>
-          <NavItem
-            $active={activeNav === 'analytics'}
-            onClick={() => setActiveNav('analytics')}
-          >
-            Analytics
-          </NavItem>
-          <NavItem
-            $active={activeNav === 'accounts'}
-            onClick={() => setActiveNav('accounts')}
-          >
-            Accounts
-          </NavItem>
-          <NavItem
-            $active={activeNav === 'wallet'}
-            onClick={() => setActiveNav('wallet')}
-          >
-            Wallet
-          </NavItem>
-        </NavMenu>
-        <HeaderActions>
-          <IconButton
-            type="button"
-            onClick={toggleTheme}
-            aria-label={
-              theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'
-            }
-          >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-          </IconButton>
-          <IconButton type="button" aria-label="Notificações">
-            <Bell size={20} />
-          </IconButton>
-          <IconButton type="button" aria-label="Configurações">
-            <Settings size={20} />
-          </IconButton>
-          <StyledAvatar>
-            <AvatarFallback>
-              {user.name
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2)}
-            </AvatarFallback>
-          </StyledAvatar>
-        </HeaderActions>
-      </DashboardHeader>
+      <Header />
       <DashboardMain>
         <DashboardContent>
           <WelcomeSection>
@@ -351,28 +303,78 @@ export function Dashboard() {
             <PeriodSelector>
               <PeriodButton
                 $active={selectedPeriod === 'this-month'}
-                onClick={() => setSelectedPeriod('this-month')}
+                onClick={() => {
+                  setSelectedPeriod('this-month');
+                  setDateRange(undefined);
+                }}
               >
                 Este mês
               </PeriodButton>
               <PeriodButton
                 $active={selectedPeriod === 'last-month'}
-                onClick={() => setSelectedPeriod('last-month')}
+                onClick={() => {
+                  setSelectedPeriod('last-month');
+                  setDateRange(undefined);
+                }}
               >
                 Mês passado
               </PeriodButton>
               <PeriodButton
                 $active={selectedPeriod === 'this-year'}
-                onClick={() => setSelectedPeriod('this-year')}
+                onClick={() => {
+                  setSelectedPeriod('this-year');
+                  setDateRange(undefined);
+                }}
               >
                 Este ano
               </PeriodButton>
-              <PeriodSelectButton
-                onClick={() => setSelectedPeriod('last-12-months')}
-              >
-                <Calendar size={16} />
-                Últimos 12 meses
-              </PeriodSelectButton>
+              <PeriodSelectWrapper>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <DatePickerTriggerButton type="button">
+                      <PeriodSelectButton
+                        type="button"
+                        $active={!!dateRange?.from && !!dateRange?.to}
+                      >
+                        <CalendarIcon size={16} />
+                        {dateRange?.from && dateRange?.to
+                          ? `${format(dateRange.from, 'dd/MM/yyyy', {
+                              locale: ptBR,
+                            })} - ${format(dateRange.to, 'dd/MM/yyyy', {
+                              locale: ptBR,
+                            })}`
+                          : 'Selecionar período'}
+                      </PeriodSelectButton>
+                    </DatePickerTriggerButton>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        setDateRange(range);
+                        if (range?.from && range?.to) {
+                          setSelectedPeriod(undefined);
+                        }
+                      }}
+                      locale={ptBR}
+                      numberOfMonths={2}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateRange?.from && dateRange?.to && (
+                  <ClearDateRangeButton
+                    type="button"
+                    onClick={() => {
+                      setDateRange(undefined);
+                    }}
+                    aria-label="Limpar filtro de datas"
+                  >
+                    <X size={16} />
+                  </ClearDateRangeButton>
+                )}
+              </PeriodSelectWrapper>
             </PeriodSelector>
           </WelcomeSection>
 
@@ -498,7 +500,19 @@ export function Dashboard() {
                 </ResponsiveContainer>
               </CategoryChartContainer>
               ) : (
-                <EmptyStateText>Nenhuma despesa encontrada</EmptyStateText>
+                <EmptyStateText>
+                  {selectedPeriod
+                    ? `Nenhuma despesa encontrada para ${
+                        selectedPeriod === 'this-month'
+                          ? 'este mês'
+                          : selectedPeriod === 'last-month'
+                            ? 'o mês passado'
+                            : selectedPeriod === 'this-year'
+                              ? 'este ano'
+                              : 'os últimos 12 meses'
+                      }`
+                    : 'Nenhuma despesa encontrada'}
+                </EmptyStateText>
               )}
               <CategoryLegend>
                 {isLoadingCategories ? (
@@ -542,11 +556,13 @@ export function Dashboard() {
               </div>
               <TransactionsTable>
                 <TableHeader>
-                  <th>Descrição</th>
-                  <th>Categoria</th>
-                  <th>Data</th>
-                  <th>Valor</th>
-                  <th></th>
+                  <tr>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th></th>
+                  </tr>
                 </TableHeader>
                 <tbody>
                   {isLoadingTransactions ? (
@@ -655,6 +671,17 @@ export function Dashboard() {
                   )}
                 </tbody>
               </TransactionsTable>
+              {transactions.length > 0 && (
+                <ViewMoreButtonContainer $theme={theme}>
+                  <PeriodButton
+                    type="button"
+                    $active={false}
+                    onClick={() => navigate('/transactions')}
+                  >
+                    Ver mais
+                  </PeriodButton>
+                </ViewMoreButtonContainer>
+              )}
             </TransactionsCard>
           </BottomSection>
         </DashboardContent>

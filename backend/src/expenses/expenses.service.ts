@@ -157,10 +157,19 @@ export class ExpensesService {
 
   async getStats(
     userId: string,
-    period: 'this-month' | 'last-month' | 'this-year' | 'last-12-months',
+    period?: 'this-month' | 'last-month' | 'this-year' | 'last-12-months',
+    startDate?: Date,
+    endDate?: Date,
   ): Promise<number> {
     // Buscar despesas do período atual
-    const currentExpenses = await this.findByPeriod(userId, period);
+    let currentExpenses: Expense[];
+    if (startDate && endDate) {
+      currentExpenses = await this.findByDateRange(userId, startDate, endDate);
+    } else if (period) {
+      currentExpenses = await this.findByPeriod(userId, period);
+    } else {
+      currentExpenses = await this.findAll(userId);
+    }
     const currentExpense = currentExpenses.reduce(
       (sum, expense) => sum + Number(expense.amount),
       0,
@@ -171,7 +180,9 @@ export class ExpensesService {
 
   async getByCategory(
     userId: string,
-    period: 'this-month' | 'last-month' | 'this-year' | 'last-12-months',
+    period?: 'this-month' | 'last-month' | 'this-year' | 'last-12-months',
+    startDate?: Date,
+    endDate?: Date,
   ): Promise<
     Array<{
       name: string;
@@ -181,7 +192,14 @@ export class ExpensesService {
       value: number;
     }>
   > {
-    const expenses = await this.findByPeriod(userId, period);
+    let expenses: Expense[];
+    if (startDate && endDate) {
+      expenses = await this.findByDateRange(userId, startDate, endDate);
+    } else if (period) {
+      expenses = await this.findByPeriod(userId, period);
+    } else {
+      expenses = await this.findAll(userId);
+    }
     const totalExpense = expenses.reduce(
       (sum, expense) => sum + Number(expense.amount),
       0,

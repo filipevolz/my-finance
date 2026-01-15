@@ -8,10 +8,12 @@ import { UsersModule } from './users/users.module';
 import { IncomesModule } from './incomes/incomes.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { CategoriesModule } from './categories/categories.module';
+import { InvestmentsModule } from './investments/investments.module';
 import { User } from './users/user.entity';
 import { Income } from './incomes/income.entity';
 import { Expense } from './expenses/expense.entity';
 import { Category } from './categories/category.entity';
+import { InvestmentOperation } from './investments/investment-operation.entity';
 
 @Module({
   imports: [
@@ -39,7 +41,7 @@ import { Category } from './categories/category.entity';
           ssl: {
             rejectUnauthorized: false,
           },
-          entities: [User, Income, Expense, Category],
+          entities: [User, Income, Expense, Category, InvestmentOperation],
           synchronize: true,
         };
       },
@@ -50,6 +52,7 @@ import { Category } from './categories/category.entity';
     IncomesModule,
     ExpensesModule,
     CategoriesModule,
+    InvestmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

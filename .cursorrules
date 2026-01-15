@@ -1,1 +1,313 @@
+# Regras de Arquitetura - MyFinance
 
+Este arquivo define as regras e padrões de arquitetura do projeto MyFinance. Todas as alterações de código devem seguir estes padrões.
+
+## Estrutura do Projeto
+
+O projeto é um monorepo com duas partes principais:
+- *backend/*: API NestJS (TypeScript)
+- *frontend/*: Aplicação React (TypeScript + Vite)
+
+## Frontend - React + TypeScript
+
+### Componentes UI - shadcn/ui
+- *PRIORIZAR usar componentes do shadcn/ui* sempre que possível
+- Para instalar componentes do shadcn, usar: npx shadcn@latest add [nome-do-componente]
+- Exemplo: npx shadcn@latest add button para instalar o componente Button
+- Os componentes do shadcn estão em @/components/ui/
+- Verificar se um componente já existe antes de criar um customizado
+- Usar componentes shadcn como base e estender quando necessário
+
+### Estilização
+- *Usar styled-components* para estilização customizada quando shadcn/ui não fornecer o componente necessário
+- Componentes shadcn podem ser estilizados usando Tailwind CSS (já configurado) ou styled-components quando necessário
+- *NÃO usar* CSS modules ou classes CSS tradicionais
+- O arquivo global.css deve conter apenas reset básico e estilos globais mínimos
+- Usar ThemeProvider do styled-components para temas e variáveis quando necessário
+
+### Unidades de Medida
+- *SEMPRE usar rem* como unidade de medida para:
+  - Font sizes
+  - Spacing (margin, padding, gap)
+  - Width e height quando apropriado
+  - Border radius
+  - Outras dimensões
+- *NÃO usar*: px, em, vh, vw (exceto em casos muito específicos justificados)
+- Base de cálculo: 1rem = 16px (padrão do navegador)
+
+### Acessibilidade (WCAG AAA)
+- *SEMPRE seguir práticas de acessibilidade WCAG AAA*
+- *Tags HTML Semânticas*: Usar tags semânticas corretas para estruturação:
+  - <main>: Conteúdo principal da página (deve haver apenas um por página)
+  - <nav>: Navegação principal
+  - <header>: Cabeçalho da página ou seção
+  - <footer>: Rodapé da página ou seção
+  - <section>: Seções temáticas do conteúdo
+  - <article>: Conteúdo independente e autocontido
+  - <aside>: Conteúdo complementar (sidebars, notas, etc)
+  - <form>: Formulários
+  - <button>: Botões interativos (não usar div/span com onClick)
+  - <label>: Labels para inputs (sempre associar com htmlFor)
+  - Evitar usar <div> e <span> quando houver tags semânticas apropriadas
+- *Hierarquia de Cabeçalhos*: Respeitar hierarquia correta de h1 a h6:
+  - <h1>: Título principal da página (apenas um por página, geralmente no início do <main>)
+  - <h2>: Seções principais dentro do conteúdo
+  - <h3>: Subseções dentro de h2
+  - <h4>: Subsubseções dentro de h3
+  - E assim por diante até h6
+  - *NÃO pular níveis* (ex: não usar h3 sem ter h2 antes)
+  - Usar apenas para estruturação de conteúdo, não para estilização
+- *Textos Alternativos*: 
+  - *SEMPRE* incluir alt descritivo em imagens (<img>)
+  - Se a imagem é decorativa, usar alt=""
+  - Descrever o conteúdo e função da imagem no alt
+- *Labels e Formulários*:
+  - *SEMPRE* associar <label> com htmlFor apontando para id do input
+  - Ou usar <label> envolvendo o input
+  - Incluir textos de ajuda ou instruções quando necessário
+- *ARIA*: Usar atributos ARIA apenas quando necessário (quando HTML semântico não é suficiente):
+  - aria-label: Quando o texto visível não descreve adequadamente o elemento
+  - aria-describedby: Para associar elementos de ajuda/descrição
+  - aria-required: Para campos obrigatórios (em conjunto com required do HTML)
+  - aria-invalid: Para indicar erros de validação
+  - role: Apenas quando necessário (preferir tags semânticas)
+- *Contraste de Cores*: Garantir contraste mínimo conforme WCAG AAA:
+  - Texto normal: contraste mínimo de 7:1
+  - Texto grande (18pt+ ou 14pt+ bold): contraste mínimo de 4.5:1
+- *Navegação por Teclado*:
+  - Todos os elementos interativos devem ser acessíveis via teclado (Tab)
+  - Ordem de foco lógica e intuitiva
+  - Indicadores de foco visíveis
+- *Estrutura da Página*:
+  - Cada página deve ter estrutura semântica clara: header, main, footer quando apropriado
+  - Conteúdo principal dentro de <main>
+  - Navegação em <nav>
+- *Landmarks*: Usar landmarks HTML5 para facilitar navegação:
+  - <main>, <nav>, <header>, <footer>, <section>, <article>, <aside>
+
+### Estrutura de Componentes
+- Cada componente deve ter sua própria pasta
+- Usar arquivo index.tsx ou index.ts para exportação
+- Componentes styled devem ser definidos no mesmo arquivo ou em arquivo separado styles.ts
+- Nomenclatura: PascalCase para componentes, camelCase para styled components
+
+Exemplo:
+
+components/
+  Button/
+    index.tsx
+    styles.ts
+
+
+### TypeScript
+- Usar TypeScript estrito
+- Definir tipos/interfaces para todas as props de componentes
+- Evitar any - usar unknown quando necessário
+- Preferir interfaces para objetos, types para unions e intersections
+
+### Formulários e Validação
+- *SEMPRE usar zod* para validação de schemas de formulários
+- *SEMPRE usar react-hook-form* para gerenciamento de formulários
+- *SEMPRE usar zodResolver* do @hookform/resolvers para integrar zod com react-hook-form
+- Definir schemas zod para todos os formulários
+- Usar componentes de formulário do shadcn/ui quando disponíveis (ex: Form, Input, etc.)
+- *SEMPRE usar máscaras em inputs* quando apropriado:
+  - *Telefone*: Formato brasileiro (99) 99999-9999 ou (99) 9999-9999
+  - *CPF*: 999.999.999-99
+  - *CNPJ*: 99.999.999/9999-99
+  - *Valor em Real (R$)*: R$ 9.999,99
+  - *Números*: Máscara apropriada conforme o caso
+- Usar biblioteca use-mask-input para aplicar máscaras (compatível com React 19 e react-hook-form)
+- Usar withMask do use-mask-input diretamente no ref do input quando usar Controller do react-hook-form
+- A máscara deve ser aplicada no componente Input, mantendo compatibilidade com react-hook-form
+- Exemplo de uso:
+typescript
+import { Controller } from 'react-hook-form';
+import { withMask } from 'use-mask-input';
+
+<Controller
+  name="phone"
+  control={control}
+  render={({ field }) => {
+    const { ref, ...fieldProps } = field;
+    const maskRef = withMask('(99) 99999-9999');
+    return (
+      <Input
+        {...fieldProps}
+        ref={(node) => {
+          ref(node);
+          maskRef(node);
+        }}
+      />
+    );
+  }}
+/>
+
+- Exemplo de estrutura:
+typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const formSchema = z.object({
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+});
+
+const form = useForm<z.infer<typeof formSchema>>({
+  resolver: zodResolver(formSchema),
+});
+
+
+### Estados de Loading e Feedback
+- *SEMPRE implementar estado de loading em botões* que fazem requisições (submissões de formulários, ações assíncronas)
+- *Desabilitar botão durante o loading* para evitar múltiplos cliques e requisições duplicadas
+- Usar componente Button do shadcn/ui com prop disabled quando isLoading for true
+- Mostrar indicador visual de loading no botão (spinner ou texto "Carregando...")
+- Para páginas que carregam dados, *SEMPRE usar Skeleton do shadcn/ui* para melhorar UX durante o carregamento
+- Instalar skeleton quando necessário: npx shadcn@latest add skeleton
+- Exemplo de uso em botão:
+typescript
+const [isLoading, setIsLoading] = useState(false);
+
+const handleSubmit = async () => {
+  setIsLoading(true);
+  try {
+    await fetchData();
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+<Button disabled={isLoading}>
+  {isLoading ? 'Carregando...' : 'Enviar'}
+</Button>
+
+- Exemplo de uso de Skeleton em páginas:
+typescript
+{isLoading ? (
+  <div className="space-y-4">
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+  </div>
+) : (
+  <DataComponent data={data} />
+)}
+
+
+### Hooks e Estado
+- Usar React Hooks (useState, useEffect, useContext, etc.)
+- Considerar criar hooks customizados para lógica reutilizável
+- Preferir Context API para estado global quando necessário
+
+### Formatação
+- Usar arrow functions para componentes funcionais
+- Usar template literals para strings complexas
+- Manter componentes pequenos e focados (Single Responsibility)
+
+## Backend - NestJS
+
+### Estrutura
+- Seguir a arquitetura modular do NestJS
+- Cada módulo deve ter sua pasta com:
+  - .module.ts
+  - .controller.ts
+  - .service.ts
+  - .entity.ts (se usar TypeORM)
+  - .dto.ts (Data Transfer Objects)
+
+### Padrões de Código
+- Usar DTOs para validação de dados de entrada
+- Usar Entities para modelos de dados
+- Services para lógica de negócio
+- Controllers apenas para rotas e validação básica
+
+### Validação
+- Usar class-validator para validação de DTOs
+- Usar class-transformer quando necessário
+
+## Padrões Gerais
+
+### Nomenclatura
+- *Variáveis e funções*: camelCase
+- *Componentes React*: PascalCase
+- *Arquivos*: kebab-case para arquivos de configuração, camelCase para código
+- *Constantes*: UPPER_SNAKE_CASE
+
+### Imports
+- Organizar imports em grupos: bibliotecas externas, imports internos, imports relativos
+- Usar imports absolutos quando possível (usando aliases do TypeScript)
+
+### Commits
+- Usar mensagens descritivas
+- Preferir commits atômicos (uma funcionalidade por commit)
+
+### Performance
+- Usar React.memo quando apropriado
+- Evitar re-renders desnecessários
+- Considerar code splitting para rotas
+
+## Ferramentas e Bibliotecas
+
+### Frontend
+- React 19+
+- TypeScript 5.9+
+- Styled Components 6+
+- React Router DOM 7+
+- Vite
+- shadcn/ui (componentes UI)
+- Tailwind CSS 4+
+- Zod (validação de schemas)
+- React Hook Form (gerenciamento de formulários)
+- @hookform/resolvers (integração zod + react-hook-form)
+
+### Backend
+- NestJS 11+
+- TypeScript 5.7+
+
+## Verificação e Qualidade de Código
+
+### Antes de Finalizar Alterações
+- *SEMPRE executar verificações* antes de considerar código pronto:
+  - Backend: npm run check (verifica lint, format e build)
+  - Frontend: Verificar lint e formatação antes de finalizar
+
+### Backend - NestJS
+- Executar npm run lint:check para verificar erros de lint
+- Executar npm run format:check para verificar formatação
+- Executar npm run check para verificação completa (lint + format + build)
+- Corrigir automaticamente com npm run lint (corrige lint) e npm run format (formata código)
+- *SEMPRE verificar que o código compila* antes de considerar pronto (npm run build)
+
+### Frontend - React
+- Executar npm run lint:check para verificar erros de lint
+- Executar npm run format:check para verificar formatação
+- Executar npm run check para verificação completa (lint + format + build)
+- Corrigir automaticamente com npm run lint (corrige lint) e npm run format (formata código)
+- *SEMPRE verificar que o código compila* antes de considerar pronto (npm run build)
+
+### Scripts Disponíveis (Backend)
+- npm run lint:check - Verifica erros de lint sem corrigir
+- npm run lint - Verifica e corrige erros de lint automaticamente
+- npm run format:check - Verifica formatação sem alterar arquivos
+- npm run format - Formata todos os arquivos automaticamente
+- npm run check - Verificação completa (lint + format + build)
+- npm run build - Compila o projeto e verifica erros de TypeScript
+
+### Scripts Disponíveis (Frontend)
+- npm run lint:check - Verifica erros de lint sem corrigir
+- npm run lint - Verifica e corrige erros de lint automaticamente
+- npm run format:check - Verifica formatação sem alterar arquivos
+- npm run format - Formata todos os arquivos automaticamente
+- npm run check - Verificação completa (lint + format + build)
+- npm run build - Compila o projeto e verifica erros de TypeScript
+
+## Observações Importantes
+
+- *SEMPRE* seguir estas regras ao criar ou modificar código
+- *SEMPRE executar verificações* (npm run check no backend e frontend) antes de considerar código pronto
+- Quando houver dúvida, priorizar consistência com o código existente
+- Ao adicionar novas funcionalidades, manter a arquitetura estabelecida
+- Documentar código complexo quando necessário
+- Corrigir erros de lint e formatação antes de finalizar alterações

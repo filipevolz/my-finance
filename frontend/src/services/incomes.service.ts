@@ -73,9 +73,21 @@ export const incomesService = {
     return response.data;
   },
 
-  async getStats(period: Period = 'this-month'): Promise<StatsResponse> {
+  async getStats(
+    period?: Period,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<StatsResponse> {
+    const params: Record<string, string> = {};
+    if (period) {
+      params.period = period;
+    }
+    if (startDate && endDate) {
+      params.startDate = startDate.toISOString().split('T')[0];
+      params.endDate = endDate.toISOString().split('T')[0];
+    }
     const response = await api.get<StatsResponse>('/incomes/stats', {
-      params: { period },
+      params,
     });
     return response.data;
   },
@@ -121,6 +133,224 @@ export const incomesService = {
     const response = await api.get('/incomes/latest-transactions', {
       params: { limit },
     });
+    return response.data;
+  },
+
+  async getTransactions(filters?: {
+    startDate?: Date;
+    endDate?: Date;
+    category?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    description?: string;
+    period?: Period;
+    month?: number;
+    year?: number;
+    type?: 'income' | 'expense';
+  }): Promise<{
+    data: Array<{
+      id: string;
+      description: string;
+      categoryIcon: string;
+      category: string;
+      date: string;
+      amount: number;
+      type: 'income' | 'expense';
+    }>;
+  }> {
+    const params: Record<string, string> = {};
+    if (filters?.startDate) {
+      params.startDate = filters.startDate.toISOString().split('T')[0];
+    }
+    if (filters?.endDate) {
+      params.endDate = filters.endDate.toISOString().split('T')[0];
+    }
+    if (filters?.category) {
+      params.category = filters.category;
+    }
+    if (filters?.minAmount !== undefined) {
+      params.minAmount = filters.minAmount.toString();
+    }
+    if (filters?.maxAmount !== undefined) {
+      params.maxAmount = filters.maxAmount.toString();
+    }
+    if (filters?.description) {
+      params.description = filters.description;
+    }
+    if (filters?.period) {
+      params.period = filters.period;
+    }
+    if (filters?.month !== undefined) {
+      params.month = filters.month.toString();
+    }
+    if (filters?.year !== undefined) {
+      params.year = filters.year.toString();
+    }
+    if (filters?.type) {
+      params.type = filters.type;
+    }
+    const response = await api.get('/incomes/transactions', { params });
+    return response.data;
+  },
+
+  async getMonthlyEvolution(months: number = 12): Promise<{
+    data: Array<{
+      month: string;
+      income: number;
+      expense: number;
+      balance: number;
+    }>;
+  }> {
+    const response = await api.get('/incomes/analytics/monthly-evolution', {
+      params: { months },
+    });
+    return response.data;
+  },
+
+  async getCategoryExpenseAnalysis(months: number = 6): Promise<{
+    data: Array<{
+      category: string;
+      averageMonthly: number;
+      lastMonth: number;
+      variation: number;
+      mostExpensiveMonth: { month: string; value: number };
+      icon: string | null;
+      color: string;
+    }>;
+  }> {
+    const response = await api.get(
+      '/incomes/analytics/category-expense-analysis',
+      {
+        params: { months },
+      },
+    );
+    return response.data;
+  },
+
+  async getRecurringExpenses(): Promise<{
+    data: Array<{
+      name: string;
+      amount: number;
+      frequency: string;
+      annualImpact: number;
+      category: string;
+    }>;
+  }> {
+    const response = await api.get('/incomes/analytics/recurring-expenses');
+    return response.data;
+  },
+
+  async getIncomeSourcesAnalysis(): Promise<{
+    data: {
+      sources: Array<{
+        category: string;
+        name: string | null;
+        sourceLabel: string;
+        total: number;
+        percentage: number;
+        count: number;
+      }>;
+      totalIncome: number;
+      mainSourcePercentage: number;
+      sourceCount: number;
+    };
+  }> {
+    const response = await api.get('/incomes/analytics/income-sources');
+    return response.data;
+  },
+
+  async getConsumptionPattern(months: number = 3): Promise<{
+    data: {
+      byDayOfWeek: Array<{ day: string; total: number; count: number }>;
+      byDayOfMonth: Array<{ day: number; total: number; count: number }>;
+    };
+  }> {
+    const response = await api.get('/incomes/analytics/consumption-pattern', {
+      params: { months },
+    });
+    return response.data;
+  },
+
+  async getFinancialHealthScore(): Promise<{
+    data: {
+      score: number;
+      details: {
+        expenseRatio: number;
+        positiveMonths: number;
+        positiveMonthsPercentage: number;
+        recurringExpenseRatio: number;
+      };
+      insights: string[];
+    };
+  }> {
+    const response = await api.get('/incomes/analytics/financial-health');
+    return response.data;
+  },
+
+  async getPeriodComparison(): Promise<{
+    data: {
+      current: {
+        income: number;
+        expense: number;
+        balance: number;
+      };
+      previous: {
+        income: number;
+        expense: number;
+        balance: number;
+      };
+      changes: {
+        incomeChange: number;
+        expenseChange: number;
+        balanceChange: number;
+      };
+    };
+  }> {
+    const response = await api.get('/incomes/analytics/period-comparison');
+    return response.data;
+  },
+
+  async getBudgetSuggestion(): Promise<{
+    data: {
+      categories: Array<{
+        category: string;
+        suggestedBudget: number;
+        currentSpent: number;
+        difference: number;
+        percentage: number;
+      }>;
+      totalSuggested: number;
+      totalSpent: number;
+      totalDifference: number;
+    };
+  }> {
+    const response = await api.get('/incomes/analytics/budget-suggestion');
+    return response.data;
+  },
+
+  async getTopVillains(): Promise<{
+    data: {
+      biggestCategoryIncrease: {
+        category: string;
+        current: number;
+        previous: number;
+        increase: number;
+      } | null;
+      heaviestRecurringExpense: {
+        name: string;
+        amount: number;
+        annualImpact: number;
+        category: string;
+      } | null;
+      biggestSingleExpense: {
+        name: string | null;
+        category: string;
+        amount: number;
+        date: string;
+      } | null;
+    };
+  }> {
+    const response = await api.get('/incomes/analytics/top-villains');
     return response.data;
   },
 };

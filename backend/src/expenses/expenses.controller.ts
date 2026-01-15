@@ -95,9 +95,16 @@ export class ExpensesController {
   async getByCategory(
     @CurrentUser() userId: string,
     @Query('period')
-    period: 'this-month' | 'last-month' | 'this-year' | 'last-12-months' = 'this-month',
+    period?: 'this-month' | 'last-month' | 'this-year' | 'last-12-months',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    const stats = await this.expensesService.getByCategory(userId, period);
+    const stats = await this.expensesService.getByCategory(
+      userId,
+      period,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+    );
     return { data: stats };
   }
 }

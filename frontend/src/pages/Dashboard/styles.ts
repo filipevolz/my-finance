@@ -174,10 +174,14 @@ export const PeriodButton = styled.button<{ $active?: boolean }>`
   }
 `;
 
-export const PeriodSelectButton = styled.button`
-  background-color: ${(props) => props.theme.surface};
-  color: ${(props) => props.theme.textSecondary};
-  border: 0.0625rem solid ${(props) => props.theme.border};
+export const PeriodSelectButton = styled.button<{ $active?: boolean }>`
+  background-color: ${(props) =>
+    props.$active ? props.theme.primary : props.theme.surface};
+  color: ${(props) =>
+    props.$active ? '#fff' : props.theme.textSecondary};
+  border: 0.0625rem solid
+    ${(props) =>
+      props.$active ? props.theme.primary : props.theme.border};
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
@@ -189,14 +193,67 @@ export const PeriodSelectButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${(props) => props.theme.surfaceSecondary};
-    border-color: ${(props) => props.theme.borderHover};
+    background-color: ${(props) =>
+      props.$active
+        ? props.theme.primaryHover
+        : props.theme.surfaceSecondary};
+    border-color: ${(props) =>
+      props.$active
+        ? props.theme.primaryHover
+        : props.theme.borderHover};
   }
 
   &:focus-visible {
     outline: 0.125rem solid ${(props) => props.theme.primary};
     outline-offset: 0.125rem;
   }
+`;
+
+export const PeriodSelectWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const DatePickerTriggerButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+`;
+
+export const ClearDateRangeButton = styled.button`
+  background: none;
+  border: none;
+  color: ${(props) => props.theme.textSecondary};
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+
+  &:hover {
+    background-color: ${(props) => props.theme.surfaceSecondary};
+    color: ${(props) => props.theme.text};
+  }
+
+  &:focus-visible {
+    outline: 0.125rem solid ${(props) => props.theme.primary};
+    outline-offset: 0.125rem;
+  }
+`;
+
+export const ViewMoreButtonContainer = styled.div<{ $theme: 'light' | 'dark' }>`
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 0.0625rem solid
+    ${(props) => (props.$theme === 'light' ? '#e5e7eb' : '#374151')};
 `;
 
 export const StatsGrid = styled.div`

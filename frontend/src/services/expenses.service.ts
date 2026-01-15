@@ -85,7 +85,9 @@ export const expensesService = {
   },
 
   async getByCategory(
-    period: Period = 'this-month',
+    period?: Period,
+    startDate?: Date,
+    endDate?: Date,
   ): Promise<{
     data: Array<{
       name: string;
@@ -95,8 +97,16 @@ export const expensesService = {
       value: number;
     }>;
   }> {
+    const params: Record<string, string> = {};
+    if (period) {
+      params.period = period;
+    }
+    if (startDate && endDate) {
+      params.startDate = startDate.toISOString().split('T')[0];
+      params.endDate = endDate.toISOString().split('T')[0];
+    }
     const response = await api.get('/expenses/by-category/stats', {
-      params: { period },
+      params,
     });
     return response.data;
   },
