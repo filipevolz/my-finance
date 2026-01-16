@@ -96,7 +96,7 @@ export const ChartContainer = styled.div`
   margin-bottom: 1rem;
 `;
 
-export const InsightCard = styled.div`
+export const InsightCard = styled.article`
   background-color: ${(props) => props.theme.surfaceSecondary};
   border-radius: 0.5rem;
   padding: 1rem;
@@ -149,17 +149,19 @@ export const HealthScoreCard = styled.div`
   gap: 1rem;
 `;
 
-export const ScoreValue = styled.div<{ $color: string }>`
+export const ScoreValue = styled.strong<{ $color: string }>`
   font-size: 4rem;
   font-weight: 700;
   color: ${(props) => props.$color};
   line-height: 1;
+  display: block;
 `;
 
-export const ScoreLabel = styled.div`
+export const ScoreLabel = styled.p`
   font-size: 1.25rem;
   font-weight: 600;
   color: ${(props) => props.theme.text};
+  margin: 0;
 `;
 
 export const ScoreDetails = styled.div`
@@ -170,12 +172,13 @@ export const ScoreDetails = styled.div`
   margin-top: 1rem;
 `;
 
-export const ScoreDetailItem = styled.div`
+export const ScoreDetailItem = styled.p`
   font-size: 0.875rem;
   color: ${(props) => props.theme.textSecondary};
   padding: 0.5rem;
   background-color: ${(props) => props.theme.surfaceSecondary};
   border-radius: 0.5rem;
+  margin: 0;
 `;
 
 export const InsightsList = styled.ul`
@@ -204,14 +207,15 @@ export const HeatmapContainer = styled.div`
   flex-wrap: wrap;
 `;
 
-export const HeatmapLabel = styled.div`
+export const HeatmapLabel = styled.span`
   font-size: 0.75rem;
   color: ${(props) => props.theme.textSecondary};
   margin-bottom: 0.5rem;
   font-weight: 600;
+  display: block;
 `;
 
-export const HeatmapDay = styled.div<{ $intensity: number }>`
+export const HeatmapDay = styled.span<{ $intensity: number }>`
   padding: 0.75rem;
   border-radius: 0.5rem;
   background-color: ${(props) => {
@@ -224,6 +228,7 @@ export const HeatmapDay = styled.div<{ $intensity: number }>`
   min-width: 4rem;
   text-align: center;
   border: 0.0625rem solid ${(props) => props.theme.border};
+  display: block;
 `;
 
 export const RecurringExpenseItem = styled.div`
@@ -235,11 +240,12 @@ export const RecurringExpenseItem = styled.div`
   }
 `;
 
-export const RecurringExpenseName = styled.div`
+export const RecurringExpenseName = styled.strong`
   font-size: 1rem;
   font-weight: 600;
   color: ${(props) => props.theme.text};
   margin-bottom: 0.5rem;
+  display: block;
 `;
 
 export const RecurringExpenseDetails = styled.div`
@@ -288,27 +294,67 @@ export const ComparisonCard = styled(Card)`
   flex-direction: column;
 `;
 
-export const ComparisonLabel = styled.div`
+export const ComparisonLabel = styled.p`
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
   color: ${(props) => props.theme.textSecondary};
+  margin: 0 0 0.5rem 0;
 `;
 
-export const ComparisonValue = styled.div`
+export const ComparisonValue = styled.strong`
   font-size: 1.5rem;
   font-weight: 600;
   color: ${(props) => props.theme.text};
   margin-bottom: 0.25rem;
+  display: block;
 `;
 
-export const ComparisonChange = styled.div<{ $isPositive?: boolean }>`
+export const ComparisonChange = styled.span<{ $isPositive?: boolean }>`
   font-size: 0.875rem;
   color: ${(props) => (props.$isPositive ? '#4ade80' : '#ef4444')};
   font-weight: 500;
+  display: block;
 `;
 
 export const VillainsList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+`;
+
+export const CategoryCellContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const TableCellWithColor = styled(TableCell)<{ $isPositive?: boolean; $isNegative?: boolean }>`
+  color: ${(props) => {
+    if (props.$isPositive) return '#4ade80';
+    if (props.$isNegative) return '#ef4444';
+    return 'inherit';
+  }};
+`;
+
+export const InsightCardWithMargin = styled(InsightCard)`
+  margin-top: 1.5rem;
+`;
+
+export const WarningText = styled.span`
+  color: #f59e0b;
+`;
+
+export const HeatmapSection = styled.div`
+  margin-bottom: 2rem;
+`;
+
+export const HeatmapSectionTitle = styled.h3`
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: ${(props) => props.theme.text};
+`;
+
+export const HeatmapDayContainer = styled.div`
+  text-align: center;
 `;

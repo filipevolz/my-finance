@@ -332,10 +332,10 @@ export function Dashboard() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <DatePickerTriggerButton type="button">
-                      <PeriodSelectButton
+              <PeriodSelectButton
                         type="button"
                         $active={!!dateRange?.from && !!dateRange?.to}
-                      >
+              >
                         <CalendarIcon size={16} />
                         {dateRange?.from && dateRange?.to
                           ? `${format(dateRange.from, 'dd/MM/yyyy', {
@@ -344,7 +344,7 @@ export function Dashboard() {
                               locale: ptBR,
                             })}`
                           : 'Selecionar período'}
-                      </PeriodSelectButton>
+              </PeriodSelectButton>
                     </DatePickerTriggerButton>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -557,11 +557,11 @@ export function Dashboard() {
               <TransactionsTable>
                 <TableHeader>
                   <tr>
-                    <th>Descrição</th>
-                    <th>Categoria</th>
-                    <th>Data</th>
-                    <th>Valor</th>
-                    <th></th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Data</th>
+                  <th>Valor</th>
+                  <th></th>
                   </tr>
                 </TableHeader>
                 <tbody>

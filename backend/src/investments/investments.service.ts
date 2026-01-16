@@ -6,6 +6,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InvestmentOperation, OperationType } from './investment-operation.entity';
+import { AssetType } from './asset-type.entity';
+import { Exchange } from './exchange.entity';
+import { Asset } from './asset.entity';
 import { CreateInvestmentOperationDto } from './dto/create-investment-operation.dto';
 import { UpdateInvestmentOperationDto } from './dto/update-investment-operation.dto';
 
@@ -14,6 +17,12 @@ export class InvestmentsService {
   constructor(
     @InjectRepository(InvestmentOperation)
     private operationsRepository: Repository<InvestmentOperation>,
+    @InjectRepository(AssetType)
+    private assetTypeRepository: Repository<AssetType>,
+    @InjectRepository(Exchange)
+    private exchangeRepository: Repository<Exchange>,
+    @InjectRepository(Asset)
+    private assetRepository: Repository<Asset>,
   ) {}
 
   async create(
@@ -368,5 +377,181 @@ export class InvestmentsService {
       .orderBy('operation.date', 'ASC')
       .addOrderBy('operation.created_at', 'ASC')
       .getMany();
+  }
+
+  // Obter tipos de ativos disponíveis
+  async getAssetTypes(): Promise<AssetType[]> {
+    return await this.assetTypeRepository.find({
+      order: { groupName: 'ASC' },
+    });
+  }
+
+  // Obter exchanges disponíveis
+  async getExchanges(): Promise<Exchange[]> {
+    return await this.exchangeRepository.find({
+      order: { exchangeName: 'ASC' },
+    });
+  }
+
+  // Popular asset types (seed)
+  async seedAssetTypes(assetTypes: Partial<AssetType>[]): Promise<void> {
+    const existing = await this.assetTypeRepository.count();
+    if (existing === 0) {
+      await this.assetTypeRepository.save(
+        this.assetTypeRepository.create(assetTypes),
+      );
+    }
+  }
+
+  // Popular exchanges (seed)
+  async seedExchanges(exchanges: Partial<Exchange>[]): Promise<void> {
+    const existing = await this.exchangeRepository.count();
+    if (existing === 0) {
+      // Inserir em lotes para melhor performance
+      const batchSize = 100;
+      for (let i = 0; i < exchanges.length; i += batchSize) {
+        const batch = exchanges.slice(i, i + batchSize);
+        await this.exchangeRepository.save(
+          this.exchangeRepository.create(batch),
+        );
+      }
+    }
+  }
+
+  // Popular assets (seed)
+  async seedAssets(assets: Partial<Asset>[]): Promise<void> {
+    const existing = await this.assetRepository.count();
+    if (existing === 0) {
+      // Inserir em lotes para melhor performance
+      const batchSize = 100;
+      for (let i = 0; i < assets.length; i += batchSize) {
+        const batch = assets.slice(i, i + batchSize);
+        await this.assetRepository.save(
+          this.assetRepository.create(batch),
+        );
+      }
+    }
+  }
+
+  // Buscar assets da API externa
+  async fetchAssetsFromAPI(
+    assetSearch: string = '',
+    group: string = 'STOCK',
+  ): Promise<any[]> {
+    try {
+      const url = new URL('https://myprofitweb.com/API/Assets');
+      if (assetSearch) {
+        url.searchParams.append('assetSearch', assetSearch);
+      }
+      if (group) {
+        url.searchParams.append('group', group);
+      }
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Erro ao buscar assets da API:', error);
+      throw error;
+    }
+  }
+
+  // Popular assets no banco a partir da API
+  async syncAssetsFromAPI(group: string = 'STOCK'): Promise<number> {
+    try {
+      const assetsFromAPI = await this.fetchAssetsFromAPI('', group);
+      let synced = 0;
+
+      for (const apiAsset of assetsFromAPI) {
+        const ticker = apiAsset.Ticker?.trim();
+        if (!ticker) continue;
+
+        // Verificar se já existe
+        const existing = await this.assetRepository.findOne({
+          where: { ticker },
+        });
+
+        if (!existing) {
+          // Converter data
+          let dueDate: Date | null = null;
+          if (apiAsset.DueDate) {
+            dueDate = new Date(apiAsset.DueDate);
+          }
+
+          const asset = this.assetRepository.create({
+            assetName: apiAsset.AssetName?.trim() || '',
+            ticker,
+            alias: apiAsset.Alias?.trim() || null,
+            tickerRef: apiAsset.TickerRef?.trim() || null,
+            pic: apiAsset.Pic?.trim() || null,
+            sector: apiAsset.Sector?.trim() || null,
+            subSector: apiAsset.SubSector?.trim() || null,
+            typeTax: apiAsset.TypeTax?.trim() || null,
+            dueDate,
+            index: apiAsset.Index?.trim() || null,
+            tax: apiAsset.Tax || 0,
+            segment: apiAsset.Segment?.trim() || null,
+            assetType: apiAsset.AssetType?.trim() || null,
+            cnpj: apiAsset.CNPJ?.trim() || null,
+            cnpjAdmin: apiAsset.CNPJAdmin?.trim() || null,
+            administrator: apiAsset.Administrator?.trim() || null,
+            legalName: apiAsset.LegalName?.trim() || null,
+            codeAPI: apiAsset.CodeAPI || null,
+            exceptions: apiAsset.Exceptions?.trim() || null,
+            market: apiAsset.Market || 0,
+            marketString: apiAsset.MarketString?.trim() || null,
+            category: apiAsset.Category?.trim() || null,
+            exemption: apiAsset.Exemption || false,
+            assetGroup: apiAsset.AssetGroup?.trim() || group,
+            assetSeries: apiAsset.AssetSeries?.trim() || null,
+          });
+
+          await this.assetRepository.save(asset);
+          synced++;
+        }
+      }
+
+      return synced;
+    } catch (error) {
+      console.error('Erro ao sincronizar assets:', error);
+      throw error;
+    }
+  }
+
+  // Buscar assets do banco (com filtros)
+  async searchAssets(
+    search?: string,
+    assetGroup?: string,
+    limit: number = 50,
+  ): Promise<Asset[]> {
+    const query = this.assetRepository.createQueryBuilder('asset');
+
+    if (search) {
+      query.where(
+        '(LOWER(asset.ticker) LIKE LOWER(:search) OR LOWER(asset.assetName) LIKE LOWER(:search))',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (assetGroup) {
+      if (search) {
+        query.andWhere('asset.assetGroup = :assetGroup', { assetGroup });
+      } else {
+        query.where('asset.assetGroup = :assetGroup', { assetGroup });
+      }
+    }
+
+    query.orderBy('asset.assetName', 'ASC').limit(limit);
+
+    return await query.getMany();
+  }
+
+  // Obter asset por ticker
+  async getAssetByTicker(ticker: string): Promise<Asset | null> {
+    return await this.assetRepository.findOne({
+      where: { ticker },
+    });
   }
 }

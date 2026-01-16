@@ -165,15 +165,17 @@ export const PositionCard = styled(Card)`
   gap: 0.5rem;
 `;
 
-export const PositionHeader = styled.div`
+export const PositionHeader = styled.p`
   font-size: 0.875rem;
   color: ${(props) => props.theme.textSecondary};
   font-weight: 500;
+  margin: 0;
 `;
 
-export const PositionValue = styled.div<{ $isPositive?: boolean }>`
+export const PositionValue = styled.strong<{ $isPositive?: boolean }>`
   font-size: 1.5rem;
   font-weight: 700;
+  display: block;
   color: ${(props) =>
     props.$isPositive !== undefined
       ? props.$isPositive
@@ -182,10 +184,11 @@ export const PositionValue = styled.div<{ $isPositive?: boolean }>`
       : props.theme.text};
 `;
 
-export const PositionChange = styled.div<{ $isPositive?: boolean }>`
+export const PositionChange = styled.span<{ $isPositive?: boolean }>`
   font-size: 0.875rem;
   color: ${(props) => (props.$isPositive ? '#4ade80' : '#ef4444')};
   font-weight: 500;
+  display: block;
 `;
 
 export const EmptyStateText = styled.p`
@@ -195,7 +198,7 @@ export const EmptyStateText = styled.p`
   padding: 2rem;
 `;
 
-export const InsightCard = styled.div`
+export const InsightCard = styled.article`
   background-color: ${(props) => props.theme.surfaceSecondary};
   border-radius: 0.5rem;
   padding: 1rem;
@@ -247,4 +250,42 @@ export const GroupButton = styled.button<{ $active?: boolean }>`
     outline: 0.125rem solid ${(props) => props.theme.primary};
     outline-offset: 0.125rem;
   }
+`;
+
+export const SummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: 1rem;
+`;
+
+export const TableCellWithColor = styled(TableCell)<{ $isPositive?: boolean }>`
+  color: ${(props) => (props.$isPositive ? '#4ade80' : '#ef4444')};
+`;
+
+export const LinkButton = styled.button`
+  background: none;
+  border: none;
+  color: ${(props) => props.theme.primary};
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:focus-visible {
+    outline: 0.125rem solid ${(props) => props.theme.primary};
+    outline-offset: 0.125rem;
+    border-radius: 0.25rem;
+  }
+`;
+
+export const AssetLinkButton = styled(LinkButton)`
+  font-weight: 600;
+`;
+
+export const GroupSectionTitle = styled(SectionTitle)`
+  margin-bottom: 1rem;
 `;

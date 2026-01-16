@@ -48,6 +48,11 @@ import {
   InsightText,
   GroupSelector,
   GroupButton,
+  SummaryGrid,
+  TableCellWithColor,
+  LinkButton,
+  AssetLinkButton,
+  GroupSectionTitle,
 } from './styles';
 
 type ViewMode = 'value' | 'percentage';
@@ -211,7 +216,7 @@ export function Investments() {
           {/* Resumo da Carteira */}
           <Section>
             <SectionTitle>Resumo da Carteira</SectionTitle>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <SummaryGrid>
               <PositionCard>
                 <PositionHeader>Patrimônio Total</PositionHeader>
                 <PositionValue>{formatCurrency(totalPortfolioValue)}</PositionValue>
@@ -229,7 +234,7 @@ export function Investments() {
                   {formatPercentage(totalProfitPercentage)}
                 </PositionChange>
               </PositionCard>
-            </div>
+            </SummaryGrid>
           </Section>
 
           {/* Evolução da Carteira */}
@@ -371,30 +376,19 @@ export function Investments() {
                         <TableCell>{formatCurrency(item.contributions)}</TableCell>
                         <TableCell>{formatCurrency(item.withdrawals)}</TableCell>
                         <TableCell>{formatCurrency(item.dividends)}</TableCell>
-                        <TableCell
-                          style={{
-                            color: item.returns >= 0 ? '#4ade80' : '#ef4444',
-                          }}
-                        >
+                        <TableCellWithColor $isPositive={item.returns >= 0}>
                           {formatPercentage(item.returns)}
-                        </TableCell>
+                        </TableCellWithColor>
                         <TableCell>
-                          <button
+                          <LinkButton
                             type="button"
                             onClick={() => {
                               // TODO: Implementar modal de detalhes do mês
                               console.log('Ver detalhes do mês:', item.month);
                             }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--primary)',
-                              cursor: 'pointer',
-                              fontSize: '0.875rem',
-                            }}
                           >
                             Ver detalhes
-                          </button>
+                          </LinkButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -452,7 +446,7 @@ export function Investments() {
               Object.entries(groupedPositions).map(([groupName, groupPositions]) => (
                 <Card key={groupName}>
                   {groupBy !== 'none' && (
-                    <SectionTitle style={{ marginBottom: '1rem' }}>{groupName}</SectionTitle>
+                    <GroupSectionTitle>{groupName}</GroupSectionTitle>
                   )}
                   <Table>
                     <TableHeader>
@@ -472,53 +466,35 @@ export function Investments() {
                       {groupPositions.map((position) => (
                         <TableRow key={position.asset}>
                           <TableCell>
-                            <button
+                            <AssetLinkButton
                               type="button"
                               onClick={() => {
                                 // TODO: Implementar modal de histórico do ativo
                                 console.log('Ver histórico do ativo:', position.asset);
                               }}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--primary)',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                              }}
                             >
                               {position.asset}
-                            </button>
+                            </AssetLinkButton>
                           </TableCell>
                           <TableCell>{position.assetClass}</TableCell>
                           <TableCell>{position.quantity.toFixed(4)}</TableCell>
                           <TableCell>{formatCurrency(position.averagePrice * 100)}</TableCell>
                           <TableCell>{formatCurrency(position.currentValue)}</TableCell>
                           <TableCell>{position.portfolioPercentage.toFixed(2)}%</TableCell>
-                          <TableCell
-                            style={{
-                              color: position.profit >= 0 ? '#4ade80' : '#ef4444',
-                            }}
-                          >
+                          <TableCellWithColor $isPositive={position.profit >= 0}>
                             {formatCurrency(position.profit)} ({formatPercentage(position.profitPercentage)})
-                          </TableCell>
+                          </TableCellWithColor>
                           <TableCell>{Math.round(position.averageHoldingTime / 30)} meses</TableCell>
                           <TableCell>
-                            <button
+                            <LinkButton
                               type="button"
                               onClick={() => {
                                 // TODO: Implementar modal de histórico do ativo
                                 console.log('Ver histórico do ativo:', position.asset);
                               }}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--primary)',
-                                cursor: 'pointer',
-                                fontSize: '0.875rem',
-                              }}
                             >
                               Ver histórico
-                            </button>
+                            </LinkButton>
                           </TableCell>
                         </TableRow>
                       ))}

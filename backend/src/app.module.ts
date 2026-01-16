@@ -14,6 +14,9 @@ import { Income } from './incomes/income.entity';
 import { Expense } from './expenses/expense.entity';
 import { Category } from './categories/category.entity';
 import { InvestmentOperation } from './investments/investment-operation.entity';
+import { AssetType } from './investments/asset-type.entity';
+import { Exchange } from './investments/exchange.entity';
+import { Asset } from './investments/asset.entity';
 
 @Module({
   imports: [
@@ -41,7 +44,7 @@ import { InvestmentOperation } from './investments/investment-operation.entity';
           ssl: {
             rejectUnauthorized: false,
           },
-          entities: [User, Income, Expense, Category, InvestmentOperation],
+          entities: [User, Income, Expense, Category, InvestmentOperation, AssetType, Exchange, Asset],
           synchronize: true,
         };
       },

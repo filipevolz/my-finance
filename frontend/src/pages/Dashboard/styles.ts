@@ -276,7 +276,7 @@ export const StatCard = styled.article`
   }
 `;
 
-export const StatCardHeader = styled.div`
+export const StatCardHeader = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -292,7 +292,7 @@ export const StatCardTitle = styled.h2`
   letter-spacing: 0.05em;
 `;
 
-export const StatCardChange = styled.div<{ $positive?: boolean }>`
+export const StatCardChange = styled.span<{ $positive?: boolean }>`
   color: ${(props) =>
     props.$positive ? props.theme.success : props.theme.error};
   font-size: 0.875rem;
@@ -302,13 +302,14 @@ export const StatCardChange = styled.div<{ $positive?: boolean }>`
   gap: 0.25rem;
 `;
 
-export const StatCardValue = styled.div<{ $positive?: boolean }>`
+export const StatCardValue = styled.strong<{ $positive?: boolean }>`
   color: ${(props) =>
     props.$positive ? props.theme.primary : props.theme.error};
   font-size: 2rem;
   font-weight: 700;
   margin: 0;
   line-height: 1.2;
+  display: block;
 `;
 
 export const ActionCardsGrid = styled.div`
@@ -537,7 +538,7 @@ export const TransactionAvatar = styled.div`
   flex-shrink: 0;
 `;
 
-export const TransactionDescription = styled.div`
+export const TransactionDescription = styled.p`
   color: ${(props) => props.theme.text};
   font-size: 0.875rem;
   font-weight: 500;
@@ -545,6 +546,7 @@ export const TransactionDescription = styled.div`
   align-items: center;
   gap: 0.75rem;
   transition: color 0.3s ease;
+  margin: 0;
 
   strong {
     color: ${(props) => props.theme.text};

@@ -313,11 +313,12 @@ export const TransactionCellContent = styled.div`
   gap: 0.75rem;
 `;
 
-export const TransactionDescription = styled.div`
+export const TransactionDescription = styled.p`
   color: ${(props) => props.theme.text};
   font-size: 0.875rem;
   font-weight: 500;
   transition: color 0.3s ease;
+  margin: 0;
 `;
 
 export const TransactionMethod = styled.span`

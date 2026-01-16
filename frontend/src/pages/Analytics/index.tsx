@@ -58,6 +58,13 @@ import {
   ComparisonValue,
   ComparisonChange,
   VillainsList,
+  CategoryCellContent,
+  TableCellWithColor,
+  InsightCardWithMargin,
+  WarningText,
+  HeatmapSection,
+  HeatmapSectionTitle,
+  HeatmapDayContainer,
 } from './styles';
 
 type EvolutionPeriod = '6-months' | '12-months' | 'this-year' | 'last-year';
@@ -591,28 +598,22 @@ export function Analytics() {
                     {categoryAnalysis.map((item) => (
                       <TableRow key={item.category}>
                         <TableCell>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <CategoryCellContent>
                             {item.icon && (
                               <IconRenderer iconName={item.icon} size={20} />
                             )}
                             {item.category}
-                          </div>
+                          </CategoryCellContent>
                         </TableCell>
                         <TableCell>{formatCurrency(item.averageMonthly)}</TableCell>
                         <TableCell>{formatCurrency(item.lastMonth)}</TableCell>
-                        <TableCell
-                          style={{
-                            color:
-                              item.variation > 0
-                                ? '#ef4444'
-                                : item.variation < 0
-                                  ? '#4ade80'
-                                  : 'inherit',
-                          }}
+                        <TableCellWithColor
+                          $isPositive={item.variation < 0}
+                          $isNegative={item.variation > 0}
                         >
                           {item.variation > 0 ? '+' : ''}
                           {item.variation.toFixed(1)}%
-                        </TableCell>
+                        </TableCellWithColor>
                         <TableCell>
                         {formatMonthYear(item.mostExpensiveMonth.month)}{' '}
                         - {formatCurrency(item.mostExpensiveMonth.value)}
@@ -667,7 +668,7 @@ export function Analytics() {
                       </RecurringExpenseItem>
                     ))}
                     {incomeSources && (
-                      <InsightCard style={{ marginTop: '1.5rem' }}>
+                      <InsightCardWithMargin>
                         <InsightText>
                           Esses gastos representam{' '}
                           {incomeSources.totalIncome > 0
@@ -684,7 +685,7 @@ export function Analytics() {
                             : 0}
                           % da sua renda mensal
                         </InsightText>
-                      </InsightCard>
+                      </InsightCardWithMargin>
                     )}
                   </>
                 )}
@@ -726,10 +727,10 @@ export function Analytics() {
                     {incomeSources.mainSourcePercentage.toFixed(1)}% da sua renda
                     vem de uma única fonte
                     {incomeSources.mainSourcePercentage > 80 && (
-                      <span style={{ color: '#f59e0b' }}>
+                      <WarningText>
                         {' '}
                         (alta dependência)
-                      </span>
+                      </WarningText>
                     )}
                   </InsightText>
                 </InsightCard>
@@ -747,8 +748,8 @@ export function Analytics() {
               <Skeleton className="h-64 w-full" />
             ) : consumptionPattern ? (
               <Card>
-                <div style={{ marginBottom: '2rem' }}>
-                  <h3 style={{ marginBottom: '1rem' }}>Por Dia da Semana</h3>
+                <HeatmapSection>
+                  <HeatmapSectionTitle>Por Dia da Semana</HeatmapSectionTitle>
                   <HeatmapContainer>
                     {consumptionPattern.byDayOfWeek.map((day) => {
                       const maxTotal = Math.max(
@@ -756,16 +757,16 @@ export function Analytics() {
                       );
                       const intensity = maxTotal > 0 ? day.total / maxTotal : 0;
                       return (
-                        <div key={day.day} style={{ textAlign: 'center' }}>
+                        <HeatmapDayContainer key={day.day}>
                           <HeatmapLabel>{day.day}</HeatmapLabel>
                           <HeatmapDay $intensity={intensity}>
                             {formatCurrency(day.total)}
                           </HeatmapDay>
-                        </div>
+                        </HeatmapDayContainer>
                       );
                     })}
                   </HeatmapContainer>
-                </div>
+                </HeatmapSection>
               </Card>
             ) : null}
           </Section>
