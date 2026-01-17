@@ -11,6 +11,7 @@ import { Exchange } from './exchange.entity';
 import { Asset } from './asset.entity';
 import { CreateInvestmentOperationDto } from './dto/create-investment-operation.dto';
 import { UpdateInvestmentOperationDto } from './dto/update-investment-operation.dto';
+import { ExternalAssetsService } from './services/external-assets.service';
 
 @Injectable()
 export class InvestmentsService {
@@ -23,6 +24,7 @@ export class InvestmentsService {
     private exchangeRepository: Repository<Exchange>,
     @InjectRepository(Asset)
     private assetRepository: Repository<Asset>,
+    private readonly externalAssetsService: ExternalAssetsService,
   ) {}
 
   async create(
@@ -520,38 +522,62 @@ export class InvestmentsService {
     }
   }
 
-  // Buscar assets do banco (com filtros)
+  // Buscar assets da API brapi (não mais do banco)
   async searchAssets(
     search?: string,
     assetGroup?: string,
     limit: number = 50,
-  ): Promise<Asset[]> {
-    const query = this.assetRepository.createQueryBuilder('asset');
+  ): Promise<any[]> {
+    // Usar ExternalAssetsService que busca diretamente da API brapi
+    const myProfitAssets = await this.externalAssetsService.searchAssets(
+      search,
+      assetGroup || 'STOCK',
+      limit,
+      0,
+    );
 
-    if (search) {
-      query.where(
-        '(LOWER(asset.ticker) LIKE LOWER(:search) OR LOWER(asset.assetName) LIKE LOWER(:search))',
-        { search: `%${search}%` },
-      );
-    }
-
-    if (assetGroup) {
-      if (search) {
-        query.andWhere('asset.assetGroup = :assetGroup', { assetGroup });
-      } else {
-        query.where('asset.assetGroup = :assetGroup', { assetGroup });
-      }
-    }
-
-    query.orderBy('asset.assetName', 'ASC').limit(limit);
-
-    return await query.getMany();
+    // Converter formato MyProfit (PascalCase) para formato Asset do frontend (camelCase)
+    return myProfitAssets.map((asset) => ({
+      id: asset.ID,
+      assetName: asset.AssetName,
+      ticker: asset.Ticker,
+      alias: asset.Alias,
+      tickerRef: asset.TickerRef,
+      pic: asset.Pic,
+      sector: asset.Sector,
+      subSector: asset.SubSector,
+      typeTax: asset.TypeTax,
+      dueDate: asset.DueDate,
+      index: asset.Index,
+      tax: asset.Tax,
+      segment: asset.Segment,
+      assetType: asset.AssetType,
+      cnpj: asset.CNPJ,
+      cnpjAdmin: asset.CNPJAdmin,
+      administrator: asset.Administrator,
+      legalName: asset.LegalName,
+      codeAPI: asset.CodeAPI,
+      exceptions: asset.Exceptions,
+      market: asset.Market,
+      marketString: asset.MarketString,
+      category: asset.Category,
+      exemption: asset.Exemption,
+      assetGroup: asset.AssetGroup,
+      assetSeries: asset.AssetSeries,
+    }));
   }
 
-  // Obter asset por ticker
-  async getAssetByTicker(ticker: string): Promise<Asset | null> {
-    return await this.assetRepository.findOne({
-      where: { ticker },
-    });
+  // Obter asset por ticker da API brapi
+  async getAssetByTicker(ticker: string): Promise<any | null> {
+    // Buscar da API brapi
+    const assets = await this.externalAssetsService.searchAssets(
+      ticker,
+      undefined,
+      1,
+      0,
+    );
+    
+    const asset = assets.find((a) => a.Ticker === ticker);
+    return asset || null;
   }
 }

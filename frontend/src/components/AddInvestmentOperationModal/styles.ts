@@ -131,3 +131,21 @@ export const StyledDialogClose = styled(DialogPrimitive.Close)`
     outline-offset: 0.125rem;
   }
 `;
+
+export const AssetCommandItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const AssetImage = styled.img`
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  object-fit: contain;
+  flex-shrink: 0;
+`;
+
+export const AssetText = styled.span`
+  flex: 1;
+`;
