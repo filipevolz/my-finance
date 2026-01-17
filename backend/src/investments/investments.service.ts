@@ -25,7 +25,7 @@ export class InvestmentsService {
     @InjectRepository(Asset)
     private assetRepository: Repository<Asset>,
     private readonly externalAssetsService: ExternalAssetsService,
-  ) {}
+  ) { }
 
   async create(
     userId: string,
@@ -133,26 +133,24 @@ export class InvestmentsService {
     await this.operationsRepository.remove(operation);
   }
 
-  // Calcular posição atual baseada nas operações
   async getCurrentPosition(userId: string): Promise<
     Array<{
       asset: string;
       assetClass: string;
       quantity: number;
       averagePrice: number;
-      currentValue: number; // Quantidade * preço médio de compra
+      currentValue: number;
       totalInvested: number;
       profit: number;
       profitPercentage: number;
       portfolioPercentage: number;
       broker: string | null;
       currency: string;
-      averageHoldingTime: number; // Dias médios investidos
+      averageHoldingTime: number;
     }>
   > {
     const operations = await this.findAll(userId);
 
-    // Agrupar por ativo
     const positions: Record<
       string,
       {
@@ -171,6 +169,7 @@ export class InvestmentsService {
 
     operations.forEach((op) => {
       const key = `${op.asset}_${op.currency}`;
+
       if (!positions[key]) {
         positions[key] = {
           asset: op.asset,
@@ -186,64 +185,86 @@ export class InvestmentsService {
         };
       }
 
-      positions[key].operations.push(op);
-      positions[key].brokers.add(op.broker || '');
-      positions[key].currencies.add(op.currency);
+      const position = positions[key];
+      const opDate = new Date(op.date);
+
+      position.operations.push(op);
+      position.brokers.add(op.broker || '');
+      position.currencies.add(op.currency);
 
       if (op.type === OperationType.BUY) {
-        positions[key].quantity += op.quantity / 10000; // Converter de centavos
-        positions[key].totalInvested += op.totalAmount;
-        if (!positions[key].firstBuyDate || op.date < positions[key].firstBuyDate) {
-          positions[key].firstBuyDate = op.date;
-        }
-      } else if (op.type === OperationType.SELL) {
-        // Calcular quantidade vendida proporcionalmente
-        const sellQuantity = op.quantity / 10000;
-        const sellValue = op.totalAmount;
-        
-        // Reduzir quantidade e ajustar investimento total (FIFO simplificado)
-        if (positions[key].quantity > 0) {
-          const avgPrice = positions[key].totalInvested / (positions[key].quantity * 100);
-          const costBasis = Math.min(sellQuantity, positions[key].quantity) * avgPrice * 100;
-          positions[key].quantity = Math.max(0, positions[key].quantity - sellQuantity);
-          positions[key].totalInvested = Math.max(0, positions[key].totalInvested - costBasis);
-          positions[key].totalSold += sellValue;
+        position.quantity += op.quantity / 10000;
+        position.totalInvested += op.totalAmount;
+
+        if (!position.firstBuyDate || opDate < position.firstBuyDate) {
+          position.firstBuyDate = opDate;
         }
       }
 
-      if (!positions[key].lastOperationDate || op.date > positions[key].lastOperationDate) {
-        positions[key].lastOperationDate = op.date;
+      if (op.type === OperationType.SELL) {
+        const sellQuantity = op.quantity / 10000;
+        const sellValue = op.totalAmount;
+
+        if (position.quantity > 0) {
+          const avgPrice = position.totalInvested / (position.quantity * 100);
+          const costBasis =
+            Math.min(sellQuantity, position.quantity) * avgPrice * 100;
+
+          position.quantity = Math.max(0, position.quantity - sellQuantity);
+          position.totalInvested = Math.max(
+            0,
+            position.totalInvested - costBasis,
+          );
+          position.totalSold += sellValue;
+        }
+      }
+
+      if (!position.lastOperationDate || opDate > position.lastOperationDate) {
+        position.lastOperationDate = opDate;
       }
     });
 
-    // Filtrar apenas posições com quantidade > 0
-    const activePositions = Object.values(positions).filter((p) => p.quantity > 0);
+    const activePositions = Object.values(positions).filter(
+      (p) => p.quantity > 0,
+    );
 
-    // Calcular valores totais
     const totalPortfolioValue = activePositions.reduce(
       (sum, p) => sum + p.totalInvested,
       0,
     );
 
-    // Calcular métricas para cada posição
     return activePositions.map((position) => {
-      const averagePrice = position.quantity > 0
-        ? position.totalInvested / (position.quantity * 100)
-        : 0;
-      const currentValue = position.totalInvested; // Usando valor investido como base (pode ser melhorado com cotações atuais)
-      const profit = currentValue - position.totalInvested;
-      const profitPercentage = position.totalInvested > 0
-        ? (profit / position.totalInvested) * 100
-        : 0;
-      const portfolioPercentage = totalPortfolioValue > 0
-        ? (position.totalInvested / totalPortfolioValue) * 100
-        : 0;
+      const averagePrice =
+        position.quantity > 0
+          ? position.totalInvested / (position.quantity * 100)
+          : 0;
 
-      // Calcular tempo médio de investimento
+      const currentValue = position.totalInvested;
+
+      const profit = currentValue - position.totalInvested;
+
+      const profitPercentage =
+        position.totalInvested > 0
+          ? (profit / position.totalInvested) * 100
+          : 0;
+
+      const portfolioPercentage =
+        totalPortfolioValue > 0
+          ? (position.totalInvested / totalPortfolioValue) * 100
+          : 0;
+
       let averageHoldingTime = 0;
+
       if (position.firstBuyDate && position.lastOperationDate) {
-        const diffTime = position.lastOperationDate.getTime() - position.firstBuyDate.getTime();
-        averageHoldingTime = Math.round(diffTime / (1000 * 60 * 60 * 24)); // Dias
+        const first = new Date(position.firstBuyDate).getTime();
+        const last = new Date(position.lastOperationDate).getTime();
+
+        if (!isNaN(first) && !isNaN(last)) {
+          const diffTime = last - first;
+          averageHoldingTime = Math.round(
+            diffTime / (1000 * 60 * 60 * 24),
+          );
+        }
       }
 
       return {
@@ -256,12 +277,14 @@ export class InvestmentsService {
         profit,
         profitPercentage,
         portfolioPercentage,
-        broker: Array.from(position.brokers).filter((b) => b).join(', ') || null,
+        broker:
+          Array.from(position.brokers).filter((b) => b).join(', ') || null,
         currency: Array.from(position.currencies)[0] || 'BRL',
         averageHoldingTime,
       };
     });
   }
+
 
   // Calcular evolução mensal da carteira
   async getMonthlyEvolution(userId: string): Promise<
@@ -327,7 +350,7 @@ export class InvestmentsService {
       cumulativeDividends += data.dividends;
 
       // Calcular valor da carteira no final do mês (simplificado: aportes - saques + proventos)
-      const portfolioValue = cumulativeContributions - 
+      const portfolioValue = cumulativeContributions -
         sortedMonths.slice(0, index + 1).reduce((sum, m) => sum + monthlyData[m].withdrawals, 0) +
         cumulativeDividends;
 
@@ -576,7 +599,7 @@ export class InvestmentsService {
       1,
       0,
     );
-    
+
     const asset = assets.find((a) => a.Ticker === ticker);
     return asset || null;
   }
