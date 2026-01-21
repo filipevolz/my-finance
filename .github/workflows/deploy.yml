@@ -36,6 +36,9 @@ jobs:
       - name: Build
         working-directory: ./frontend
         run: npm run build
+        env:
+          NODE_ENV: production
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Create .nojekyll file
         working-directory: ./frontend/dist
