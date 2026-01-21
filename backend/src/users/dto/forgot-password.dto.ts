@@ -5,3 +5,5 @@ export class ForgotPasswordDto {
   @IsEmail({}, { message: 'E-mail inválido' })
   email: string;
 }
+
+

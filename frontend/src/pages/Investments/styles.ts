@@ -284,6 +284,23 @@ export const LinkButton = styled.button`
 
 export const AssetLinkButton = styled(LinkButton)`
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const AssetImage = styled.img`
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  object-fit: contain;
+  flex-shrink: 0;
+`;
+
+export const AssetNameContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 export const GroupSectionTitle = styled(SectionTitle)`

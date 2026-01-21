@@ -52,6 +52,8 @@ import {
   TableCellWithColor,
   LinkButton,
   AssetLinkButton,
+  AssetImage,
+  AssetNameContainer,
   GroupSectionTitle,
 } from './styles';
 
@@ -70,6 +72,7 @@ export function Investments() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [monthlyEvolution, setMonthlyEvolution] = useState<MonthlyEvolution[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [assetsMap, setAssetsMap] = useState<Record<string, { pic: string | null }>>({});
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -86,6 +89,23 @@ export function Investments() {
       ]);
       setPositions(positionResponse.data);
       setMonthlyEvolution(evolutionResponse.data);
+
+      // Buscar assets para obter as imagens (pic)
+      const uniqueAssets = [...new Set(positionResponse.data.map((p) => p.asset))];
+      const assetsPromises = uniqueAssets.map((ticker) =>
+        investmentsService.getAssetByTicker(ticker).catch(() => ({ data: null })),
+      );
+      const assetsResults = await Promise.all(assetsPromises);
+      
+      const assets: Record<string, { pic: string | null }> = {};
+      assetsResults.forEach((result, index) => {
+        if (result.data) {
+          assets[uniqueAssets[index]] = { pic: result.data.pic };
+        } else {
+          assets[uniqueAssets[index]] = { pic: null };
+        }
+      });
+      setAssetsMap(assets);
     } catch (error) {
       console.error('Erro ao carregar dados de investimentos:', error);
     } finally {
@@ -463,19 +483,33 @@ export function Investments() {
                       </tr>
                     </TableHeader>
                     <tbody>
-                      {groupPositions.map((position) => (
-                        <TableRow key={position.asset}>
-                          <TableCell>
-                            <AssetLinkButton
-                              type="button"
-                              onClick={() => {
-                                // TODO: Implementar modal de histórico do ativo
-                                console.log('Ver histórico do ativo:', position.asset);
-                              }}
-                            >
-                              {position.asset}
-                            </AssetLinkButton>
-                          </TableCell>
+                      {groupPositions.map((position) => {
+                        const assetPic = assetsMap[position.asset]?.pic;
+                        return (
+                          <TableRow key={position.asset}>
+                            <TableCell>
+                              <AssetLinkButton
+                                type="button"
+                                onClick={() => {
+                                  // TODO: Implementar modal de histórico do ativo
+                                  console.log('Ver histórico do ativo:', position.asset);
+                                }}
+                              >
+                                <AssetNameContainer>
+                                  {assetPic && (
+                                    <AssetImage
+                                      src={assetPic}
+                                      alt={`Logo ${position.asset}`}
+                                      onError={(e) => {
+                                        // Esconder imagem se não carregar
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+                                  <span>{position.asset}</span>
+                                </AssetNameContainer>
+                              </AssetLinkButton>
+                            </TableCell>
                           <TableCell>{position.assetClass}</TableCell>
                           <TableCell>{position.quantity.toFixed(4)}</TableCell>
                           <TableCell>{formatCurrency(position.averagePrice * 100)}</TableCell>
@@ -497,7 +531,8 @@ export function Investments() {
                             </LinkButton>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </Table>
                 </Card>

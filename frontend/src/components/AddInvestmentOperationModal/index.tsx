@@ -43,6 +43,9 @@ import {
   StyledDialogDescription,
   StyledLabel,
   StyledDialogClose,
+  AssetCommandItem,
+  AssetImage,
+  AssetText,
 } from './styles';
 
 const operationSchema = z.object({
@@ -640,15 +643,20 @@ export function AddInvestmentOperationModal({
                                                     setAssetSearch('');
                                                   }}
                                                 >
-                                                  <Check
-                                                    className={cn(
-                                                      'mr-2 h-4 w-4',
-                                                      field.value === a.ticker
-                                                        ? 'opacity-100'
-                                                        : 'opacity-0',
+                                                  <AssetCommandItem>
+                                                    {a.pic && (
+                                                      <AssetImage
+                                                        src={a.pic}
+                                                        alt={`Logo ${a.ticker}`}
+                                                        onError={(e) => {
+                                                          e.currentTarget.style.display = 'none';
+                                                        }}
+                                                      />
                                                     )}
-                                                  />
-                                                  {a.ticker} - {displayName}
+                                                    <AssetText>
+                                                      {a.ticker} - {displayName}
+                                                    </AssetText>
+                                                  </AssetCommandItem>
                                                 </CommandItem>
                                               );
                                             })}
