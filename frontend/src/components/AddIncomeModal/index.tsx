@@ -82,16 +82,19 @@ export function AddIncomeModal({
   incomeId,
 }: AddIncomeModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const isEditing = !!incomeId;
 
   useEffect(() => {
     if (open) {
+      setIsLoadingCategories(true);
       void categoriesService
         .findAll('income' as CategoryType)
         .then((response) => setCategories(response.data))
-        .catch(() => setCategories([]));
+        .catch(() => setCategories([]))
+        .finally(() => setIsLoadingCategories(false));
     }
   }, [open]);
 
@@ -112,6 +115,50 @@ export function AddIncomeModal({
     },
     mode: 'onChange',
   });
+
+  useEffect(() => {
+    if (!open) return;
+  
+    // editar
+    if (incomeId && !isLoadingCategories && categories.length > 0) {
+      void incomesService
+        .findOne(incomeId)
+        .then((response) => {
+          const income = response.data;
+          console.log(income);
+  
+          // Corrige problema de timezone
+          const dateStr = income.date.split('T')[0];
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const incomeDate = new Date(year, month - 1, day);
+  
+          reset({
+            name: income.name || '',
+            category: income.category,
+            amount: new Intl.NumberFormat('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            }).format(income.amount / 100),
+            date: incomeDate,
+            isRecurring: income.isRecurring ?? false,
+          });
+        })
+        .catch(() => {
+          setError('Erro ao carregar receita');
+        });
+    }
+  
+    // criar
+    if (!incomeId && !isLoadingCategories) {
+      reset({
+        name: '',
+        category: '',
+        amount: '',
+        date: new Date(),
+        isRecurring: false,
+      });
+    }
+  }, [open, incomeId, reset, isLoadingCategories, categories.length]);
 
   const onSubmit = async (data: IncomeFormData) => {
     setIsLoading(true);
@@ -213,7 +260,7 @@ export function AddIncomeModal({
                     >
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" sideOffset={4}>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.name}>
                           <CategorySelectItemContent>
@@ -315,7 +362,7 @@ export function AddIncomeModal({
                         <Button
                           id="date"
                           variant="outline"
-                          className="w-full justify-start text-left font-normal"
+                          className="w-full justify-start text-left font-normal py-5"
                           aria-invalid={!!errors.date}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />

@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { DialogTitle } from '../ui/dialog';
 
 export const StyledInput = styled(Input)<{ $error?: boolean }>`
   padding: 1.25rem 1rem;
@@ -102,7 +103,7 @@ export const StyledDialogContent = styled(DialogPrimitive.Content)`
 
 export const StyledDialogHeader = styled.div``;
 
-export const StyledDialogTitle = styled.h2`
+export const StyledDialogTitle = styled(DialogTitle)`
   font-size: 1.5rem;
   font-weight: 700;
   color: ${(props) => props.theme.text};

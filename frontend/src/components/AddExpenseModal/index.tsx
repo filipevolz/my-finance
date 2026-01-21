@@ -78,16 +78,19 @@ export function AddExpenseModal({
   expenseId,
 }: AddExpenseModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const isEditing = !!expenseId;
 
   useEffect(() => {
     if (open) {
+      setIsLoadingCategories(true);
       void categoriesService
         .findAll('expense' as CategoryType)
         .then((response) => setCategories(response.data))
-        .catch(() => setCategories([]));
+        .catch(() => setCategories([]))
+        .finally(() => setIsLoadingCategories(false));
     }
   }, [open]);
 
@@ -109,16 +112,19 @@ export function AddExpenseModal({
   });
 
   useEffect(() => {
-    if (open && expenseId) {
+    if (!open) return;
+  
+    // editar
+    if (expenseId && !isLoadingCategories && categories.length > 0) {
       void expensesService
         .findOne(expenseId)
         .then((response) => {
           const expense = response.data;
-          // Parse a data sem problemas de timezone - usar apenas a string YYYY-MM-DD
-          const dateStr = expense.date.split('T')[0]; // Pega apenas a parte da data (YYYY-MM-DD)
+  
+          const dateStr = expense.date.split('T')[0];
           const [year, month, day] = dateStr.split('-').map(Number);
-          const expenseDate = new Date(year, month - 1, day); // month é 0-indexed no JavaScript
-          
+          const expenseDate = new Date(year, month - 1, day);
+  
           reset({
             name: expense.name || '',
             category: expense.category,
@@ -128,11 +134,11 @@ export function AddExpenseModal({
             }).format(expense.amount / 100),
             date: expenseDate,
           });
-        })
-        .catch(() => {
-          setError('Erro ao carregar despesa');
         });
-    } else if (open && !expenseId) {
+    }
+  
+    // criar
+    if (!expenseId && !isLoadingCategories) {
       reset({
         name: '',
         category: '',
@@ -140,7 +146,8 @@ export function AddExpenseModal({
         date: new Date(),
       });
     }
-  }, [open, expenseId, reset]);
+  }, [open, expenseId, isLoadingCategories, categories.length, reset]);
+  
 
   const onSubmit = async (data: ExpenseFormData) => {
     setIsLoading(true);
@@ -336,7 +343,7 @@ export function AddExpenseModal({
                         <Button
                           id="date"
                           variant="outline"
-                          className="w-full justify-start text-left font-normal"
+                          className="w-full justify-start text-left font-normal py-5"
                           aria-invalid={!!errors.date}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
