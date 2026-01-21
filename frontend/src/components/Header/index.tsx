@@ -55,7 +55,9 @@ export function Header() {
 
   return (
     <HeaderContainer>
-      <Logo size="medium" />
+      <a href="/dashboard">
+        <Logo size="medium" />
+      </a>
       <NavMenu>
         <NavItem
           $active={activeNav === 'dashboard'}

@@ -75,6 +75,8 @@ import {
   EmptyStateText,
   CategoryIcon,
 } from './styles';
+import { AddIncomeModal } from '@/components/AddIncomeModal';
+import { AddExpenseModal } from '@/components/AddExpenseModal';
 
 type Period = 'this-month' | 'last-month' | 'this-year' | 'last-12-months';
 
@@ -94,6 +96,10 @@ export function Transactions() {
     }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
+  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   // Filtros aplicados (usados na busca)
   const [appliedFilters, setAppliedFilters] = useState<{
@@ -309,12 +315,26 @@ export function Transactions() {
     void loadTransactions();
   };
 
+  const handleIncomeCreated = () => {
+    loadCategories();
+    loadTransactions();
+    setEditingIncomeId(null);
+  };
+
+  const handleExpenseCreated = () => {
+    loadCategories();
+    loadTransactions();
+    setEditingExpenseId(null);
+  };
+
   const handleEditIncome = (incomeId: string) => {
-    navigate('/dashboard', { state: { editIncomeId: incomeId } });
+    setEditingIncomeId(incomeId);
+    setIsAddIncomeModalOpen(true);
   };
 
   const handleEditExpense = (expenseId: string) => {
-    navigate('/dashboard', { state: { editExpenseId: expenseId } });
+    setEditingExpenseId(expenseId);
+    setIsAddExpenseModalOpen(true);
   };
 
   const handleDeleteIncome = async (incomeId: string) => {
@@ -777,6 +797,28 @@ export function Transactions() {
           </TransactionsTable>
         </TransactionsContent>
       </TransactionsMain>
+      <AddIncomeModal
+        open={isAddIncomeModalOpen}
+        onOpenChange={(open) => {
+          setIsAddIncomeModalOpen(open);
+          if (!open) {
+            setEditingIncomeId(null);
+          }
+        }}
+        onSuccess={handleIncomeCreated}
+        incomeId={editingIncomeId}
+      />
+      <AddExpenseModal
+        open={isAddExpenseModalOpen}
+        onOpenChange={(open) => {
+          setIsAddExpenseModalOpen(open);
+          if (!open) {
+            setEditingExpenseId(null);
+          }
+        }}
+        onSuccess={handleExpenseCreated}
+        expenseId={editingExpenseId}
+      />
     </TransactionsWrapper>
   );
 }
