@@ -694,8 +694,10 @@ export function Transactions() {
                   {[...Array(10)].map((_, index) => (
                     <TableRow key={`skeleton-${index}`}>
                       <TransactionCell>
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <Skeleton className="h-4 w-32 ml-3" />
+                      <TransactionCellContent>
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <Skeleton className="h-4 w-32 ml-3" />
+                        </TransactionCellContent>
                       </TransactionCell>
                       <TransactionCell>
                         <Skeleton className="h-4 w-24" />
