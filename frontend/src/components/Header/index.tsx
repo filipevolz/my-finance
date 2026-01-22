@@ -55,9 +55,9 @@ export function Header() {
 
   return (
     <HeaderContainer>
-      <a href="/dashboard">
+      <button type="button" onClick={() => navigate('/dashboard')}>
         <Logo size="medium" />
-      </a>
+      </button>
       <NavMenu>
         <NavItem
           $active={activeNav === 'dashboard'}
