@@ -3,7 +3,7 @@ import styled from 'styled-components';
 export const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  padding-right: 3rem;
 `;
 
 export const LogoImage = styled.img`
