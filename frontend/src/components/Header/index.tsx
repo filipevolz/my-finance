@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Settings, Bell, Moon, Sun } from 'lucide-react';
+import { Settings, Moon, Sun, LogOut, User, Menu, ChartLine, List, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Logo } from '../Logo';
@@ -11,13 +11,21 @@ import {
   HeaderActions,
   IconButton,
   StyledAvatar,
+  NavItemIconButton,
 } from './styles';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const getActiveNav = (): string => {
     if (location.pathname === '/dashboard') {
@@ -58,6 +66,40 @@ export function Header() {
       <button type="button" onClick={() => navigate('/dashboard')}>
         <Logo size="medium" />
       </button>
+
+      <NavItemIconButton type="button" aria-label="Menu">
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Menu size={20} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>
+              <LayoutDashboard size={20} />
+              Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <List size={20} />
+              Transações
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <ChartLine size={20} />
+              Análises
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <User size={20} />
+              Conta
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={toggleTheme} aria-label="Trocar tema">
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              Trocar tema
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <LogOut size={20} />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </NavItemIconButton>
       <NavMenu>
         <NavItem
           $active={activeNav === 'dashboard'}
@@ -77,12 +119,12 @@ export function Header() {
         >
           Análises
         </NavItem>
-        <NavItem
+        {/* <NavItem
           $active={activeNav === 'investments'}
           onClick={() => handleNavClick('investments')}
         >
           Investimentos
-        </NavItem>
+        </NavItem> */}
       </NavMenu>
       <HeaderActions>
         <IconButton
@@ -94,12 +136,26 @@ export function Header() {
         >
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </IconButton>
-        <IconButton type="button" aria-label="Notificações">
+        {/* <IconButton type="button" aria-label="Notificações">
           <Bell size={20} />
-        </IconButton>
-        <IconButton type="button" aria-label="Configurações">
-          <Settings size={20} />
-        </IconButton>
+        </IconButton> */}
+        <DropdownMenu aria-label="Configurações">
+          <DropdownMenuTrigger>
+            <IconButton type="button" aria-label="Configurações">
+              <Settings size={20} />
+            </IconButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>
+              <User size={20} />
+              Conta
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut size={20} />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <StyledAvatar>
           <AvatarFallback>
             {user.name

@@ -10,8 +10,8 @@ export const HeaderContainer = styled.header`
   border-bottom: 0.0625rem solid ${(props) => props.theme.border};
   box-shadow: 0 0.0625rem 0.1875rem ${(props) => props.theme.shadow};
   transition:
-    background-color 0.3s ease,
-    border-color 0.3s ease;
+  background-color 0.3s ease,
+  border-color 0.3s ease;
 `;
 
 export const NavMenu = styled.nav`
@@ -20,6 +20,24 @@ export const NavMenu = styled.nav`
   align-items: center;
   flex: 1;
   justify-content: center;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+export const NavItemIconButton = styled.button`
+  background: none;
+  border: none;
+  color: ${(props) => props.theme.textSecondary};
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  display: none;
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
 `;
 
 export const NavItem = styled.button<{ $active?: boolean }>`
@@ -63,6 +81,10 @@ export const HeaderActions = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 export const IconButton = styled.button`
@@ -88,6 +110,10 @@ export const IconButton = styled.button`
     outline: 0.125rem solid ${(props) => props.theme.primary};
     outline-offset: 0.125rem;
   }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 export const StyledAvatar = styled(Avatar)`
@@ -102,5 +128,9 @@ export const StyledAvatar = styled(Avatar)`
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
   }
 `;
