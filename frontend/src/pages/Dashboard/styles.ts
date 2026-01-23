@@ -132,6 +132,12 @@ export const WelcomeSection = styled.section`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 `;
 
 export const WelcomeTitle = styled.h1`
@@ -146,6 +152,12 @@ export const PeriodSelector = styled.div`
   display: flex;
   gap: 0.75rem;
   align-items: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 `;
 
 export const PeriodButton = styled.button<{ $active?: boolean }>`
@@ -374,7 +386,7 @@ export const BottomSection = styled.div`
   grid-template-columns: 1fr 1.5fr;
   gap: 1.5rem;
 
-  @media (max-width: 1024px) {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -439,6 +451,7 @@ export const CategoryInfo = styled.div`
   flex: 1;
   display: flex;
   justify-content: space-between;
+  gap: 0.5rem;
   align-items: center;
 
   span {
@@ -479,6 +492,10 @@ export const TransactionsCard = styled.article`
       font-size: 0.875rem;
       margin: 0;
     }
+  }
+
+  @media (max-width: 768px) {
+    display: none;
   }
 `;
 

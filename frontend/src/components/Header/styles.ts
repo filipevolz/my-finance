@@ -12,6 +12,10 @@ export const HeaderContainer = styled.header`
   transition:
   background-color 0.3s ease,
   border-color 0.3s ease;
+
+  @media (max-width: 768px) {
+    padding: 0.5rem 1rem 0.5rem 0;
+  }
 `;
 
 export const NavMenu = styled.nav`
