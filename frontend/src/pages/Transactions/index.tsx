@@ -74,6 +74,7 @@ import {
   TableEmptyCell,
   EmptyStateText,
   CategoryIcon,
+  TransactionPaid,
 } from './styles';
 import { AddIncomeModal } from '@/components/AddIncomeModal';
 import { AddExpenseModal } from '@/components/AddExpenseModal';
@@ -93,6 +94,7 @@ export function Transactions() {
       date: string;
       amount: number;
       type: 'income' | 'expense';
+      is_paid?: boolean;
     }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -685,6 +687,7 @@ export function Transactions() {
                 <th>Categoria</th>
                 <th>Data</th>
                 <th>Valor</th>
+                <th>Pago</th>
                 <th></th>
               </tr>
             </TableHeader>
@@ -707,6 +710,9 @@ export function Transactions() {
                       </TransactionCell>
                       <TransactionCell>
                         <Skeleton className="h-4 w-16" />
+                      </TransactionCell>
+                      <TransactionCell>
+                        <Skeleton className="h-4 w-4 rounded" />
                       </TransactionCell>
                       <TransactionCell>
                         <Skeleton className="h-4 w-4 rounded" />
@@ -746,6 +752,15 @@ export function Transactions() {
                           currency: 'BRL',
                         }).format(Math.abs(transaction.amount))}
                       </TransactionAmount>
+                    </TransactionCell>
+                    <TransactionCell>
+                      <TransactionPaid $is_paid={transaction.is_paid} $type={transaction.type}>
+                        {transaction.type === 'expense'
+                          ? transaction.is_paid
+                            ? 'Sim'
+                            : 'Não'
+                          : '-'}
+                      </TransactionPaid>
                     </TransactionCell>
                     <TransactionCell>
                       <DropdownMenu>

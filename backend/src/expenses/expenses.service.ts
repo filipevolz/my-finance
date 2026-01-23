@@ -34,6 +34,7 @@ export class ExpensesService {
       category: createExpenseDto.category,
       amount: createExpenseDto.amount,
       date,
+      is_paid: createExpenseDto.is_paid ?? false,
     });
 
     return await this.expensesRepository.save(expense);

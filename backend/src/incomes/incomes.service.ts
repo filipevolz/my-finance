@@ -504,6 +504,7 @@ export class IncomesService {
       date: string;
       amount: number;
       type: 'income' | 'expense';
+      is_paid?: boolean;
     }>
   > {
     // Buscar todas as categorias para mapear ícones
@@ -566,6 +567,7 @@ export class IncomesService {
         amount: Number(expense.amount),
         type: 'expense' as const,
         createdAt: expense.createdAt,
+        is_paid: expense.is_paid,
       };
     });
 
@@ -613,6 +615,7 @@ export class IncomesService {
       date: string;
       amount: number;
       type: 'income' | 'expense';
+      is_paid?: boolean;
     }>
   > {
     // Buscar todas as categorias para mapear ícones
@@ -777,6 +780,7 @@ export class IncomesService {
         date: dateStr,
         amount: Number(expense.amount),
         type: 'expense' as const,
+        is_paid: expense.is_paid,
       };
     });
 

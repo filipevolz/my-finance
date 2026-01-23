@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -60,6 +61,7 @@ const expenseSchema = z.object({
       { message: 'Valor deve ser maior que zero e no mínimo R$ 0,01' },
     ),
   date: z.date(),
+  is_paid: z.boolean(),
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
@@ -107,6 +109,7 @@ export function AddExpenseModal({
       category: '',
       amount: '',
       date: new Date(),
+      is_paid: false,
     },
     mode: 'onChange',
   });
@@ -133,6 +136,7 @@ export function AddExpenseModal({
               currency: 'BRL',
             }).format(expense.amount / 100),
             date: expenseDate,
+            is_paid: expense.is_paid ?? false,
           });
         });
     }
@@ -144,6 +148,7 @@ export function AddExpenseModal({
         category: '',
         amount: '',
         date: new Date(),
+        is_paid: false,
       });
     }
   }, [open, expenseId, isLoadingCategories, categories.length, reset]);
@@ -168,6 +173,7 @@ export function AddExpenseModal({
           category: data.category,
           amount: amountInCents,
           date: `${data.date.getFullYear()}-${String(data.date.getMonth() + 1).padStart(2, '0')}-${String(data.date.getDate()).padStart(2, '0')}`,
+          is_paid: data.is_paid ?? false,
         };
         await expensesService.update(expenseId, requestData);
       } else {
@@ -176,6 +182,7 @@ export function AddExpenseModal({
           category: data.category,
           amount: amountInCents,
           date: `${data.date.getFullYear()}-${String(data.date.getMonth() + 1).padStart(2, '0')}-${String(data.date.getDate()).padStart(2, '0')}`,
+          is_paid: data.is_paid ?? false,
         };
         await expensesService.create(requestData);
       }
@@ -369,6 +376,22 @@ export function AddExpenseModal({
                 />
                 {errors.date && (
                   <ErrorMessage>{errors.date.message}</ErrorMessage>
+                )}
+              </FormGroup>
+            </FormRow>
+
+            <FormRow>
+              <FormGroup className="!flex-row !items-center !gap-2">
+                <Controller
+                  name="is_paid"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox id="is_paid" checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
+                <StyledLabel htmlFor="is_paid">Pago</StyledLabel>
+                {errors.is_paid && (
+                  <ErrorMessage>{errors.is_paid.message}</ErrorMessage>
                 )}
               </FormGroup>
             </FormRow>

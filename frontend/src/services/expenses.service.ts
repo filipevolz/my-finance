@@ -5,6 +5,7 @@ export interface CreateExpenseRequest {
   category: string;
   amount: number;
   date: string;
+  is_paid?: boolean;
 }
 
 export interface UpdateExpenseRequest {
@@ -12,6 +13,7 @@ export interface UpdateExpenseRequest {
   category?: string;
   amount?: number;
   date?: string;
+  is_paid?: boolean;
 }
 
 export interface Expense {
@@ -21,6 +23,7 @@ export interface Expense {
   category: string;
   amount: number;
   date: string;
+  is_paid: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -81,6 +81,7 @@ import {
   TableEmptyCell,
   EmptyStateText,
   TransactionCellContent,
+  TransactionPaid,
 } from './styles';
 
 type Period = 'this-month' | 'last-month' | 'this-year' | 'last-12-months';
@@ -122,6 +123,7 @@ export function Dashboard() {
       category: string;
       date: string;
       amount: number;
+      is_paid?: boolean;
       type: 'income' | 'expense';
     }>
   >([]);
@@ -187,7 +189,7 @@ export function Dashboard() {
         // Converter data YYYY-MM-DD para DD/MM/YYYY sem problemas de timezone
         const dateParts = trans.date.split('-');
         const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-        
+
         return {
           id: trans.id,
           description: trans.description,
@@ -196,6 +198,7 @@ export function Dashboard() {
           date: formattedDate,
           amount: trans.amount / 100,
           type: trans.type,
+          is_paid: trans.type === 'expense' ? trans.is_paid ?? false : undefined,
         };
       });
       setTransactions(transactionsInReais);
@@ -332,19 +335,19 @@ export function Dashboard() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <DatePickerTriggerButton type="button">
-              <PeriodSelectButton
+                      <PeriodSelectButton
                         type="button"
                         $active={!!dateRange?.from && !!dateRange?.to}
-              >
+                      >
                         <CalendarIcon size={16} />
                         {dateRange?.from && dateRange?.to
                           ? `${format(dateRange.from, 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })} - ${format(dateRange.to, 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })}`
+                            locale: ptBR,
+                          })} - ${format(dateRange.to, 'dd/MM/yyyy', {
+                            locale: ptBR,
+                          })}`
                           : 'Selecionar período'}
-              </PeriodSelectButton>
+                      </PeriodSelectButton>
                     </DatePickerTriggerButton>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -479,38 +482,37 @@ export function Dashboard() {
             <ExpensesByCategoryCard>
               <h2>Despesas por categoria</h2>
               {categories.length > 0 ? (
-              <CategoryChartContainer>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categories}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="60%"
-                      outerRadius="90%"
-                      paddingAngle={2}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {categories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </CategoryChartContainer>
+                <CategoryChartContainer>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categories}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="60%"
+                        outerRadius="90%"
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {categories.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CategoryChartContainer>
               ) : (
                 <EmptyStateText>
                   {selectedPeriod
-                    ? `Nenhuma despesa encontrada para ${
-                        selectedPeriod === 'this-month'
-                          ? 'este mês'
-                          : selectedPeriod === 'last-month'
-                            ? 'o mês passado'
-                            : selectedPeriod === 'this-year'
-                              ? 'este ano'
-                              : 'os últimos 12 meses'
-                      }`
+                    ? `Nenhuma despesa encontrada para ${selectedPeriod === 'this-month'
+                      ? 'este mês'
+                      : selectedPeriod === 'last-month'
+                        ? 'o mês passado'
+                        : selectedPeriod === 'this-year'
+                          ? 'este ano'
+                          : 'os últimos 12 meses'
+                    }`
                     : 'Nenhuma despesa encontrada'}
                 </EmptyStateText>
               )}
@@ -557,11 +559,12 @@ export function Dashboard() {
               <TransactionsTable>
                 <TableHeader>
                   <tr>
-                  <th>Descrição</th>
-                  <th>Categoria</th>
-                  <th>Data</th>
-                  <th>Valor</th>
-                  <th></th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>Pago</th>
+                    <th></th>
                   </tr>
                 </TableHeader>
                 <tbody>
@@ -585,6 +588,9 @@ export function Dashboard() {
                           <TransactionCell>
                             <Skeleton className="h-4 w-4 rounded" />
                           </TransactionCell>
+                          <TransactionCell>
+                            <Skeleton className="h-4 w-4 rounded" />
+                          </TransactionCell>
                         </TableRow>
                       ))}
                     </>
@@ -593,17 +599,17 @@ export function Dashboard() {
                       <TableRow key={transaction.id}>
                         <TransactionCell>
                           <TransactionCellContent>
-                          <CategoryIcon>
-                            <IconRenderer
-                              iconName={transaction.categoryIcon}
-                              size={20}
-                              color="currentColor"
-                              fallback={<span>📁</span>}
-                            />
-                          </CategoryIcon>
-                          <TransactionDescription>
-                            {transaction.description}
-                          </TransactionDescription>
+                            <CategoryIcon>
+                              <IconRenderer
+                                iconName={transaction.categoryIcon}
+                                size={20}
+                                color="currentColor"
+                                fallback={<span>📁</span>}
+                              />
+                            </CategoryIcon>
+                            <TransactionDescription>
+                              {transaction.description}
+                            </TransactionDescription>
                           </TransactionCellContent>
                         </TransactionCell>
                         <TransactionCell>
@@ -622,6 +628,15 @@ export function Dashboard() {
                               currency: 'BRL',
                             }).format(Math.abs(transaction.amount))}
                           </TransactionAmount>
+                        </TransactionCell>
+                        <TransactionCell>
+                          <TransactionPaid $is_paid={transaction.is_paid} $type={transaction.type}>
+                            {transaction.type === 'expense'
+                              ? transaction.is_paid
+                                ? 'Sim'
+                                : 'Não'
+                              : '-'}
+                          </TransactionPaid>
                         </TransactionCell>
                         <TransactionCell>
                           <DropdownMenu>

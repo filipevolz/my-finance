@@ -573,6 +573,12 @@ export const TransactionAmount = styled.span<{ $type: 'income' | 'expense' }>`
   font-weight: 600;
 `;
 
+export const TransactionPaid = styled.span<{ $is_paid?: boolean, $type: 'income' | 'expense'}>`
+  color: ${(props) => props.$type === 'expense' ? props.$is_paid ? props.theme.success : props.theme.error : props.theme.textSecondary };
+  font-size: 0.875rem;
+  font-weight: 600;
+`;
+
 export const TransactionActions = styled.button`
   background: none;
   border: none;

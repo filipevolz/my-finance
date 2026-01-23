@@ -33,6 +33,9 @@ export class Expense {
   @Column({ type: 'date' })
   date: Date;
 
+  @Column({ type: 'boolean', default: false })
+  is_paid: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

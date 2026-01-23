@@ -128,6 +128,7 @@ export const incomesService = {
       date: string;
       amount: number;
       type: 'income' | 'expense';
+      is_paid?: boolean;
     }>;
   }> {
     const response = await api.get('/incomes/latest-transactions', {
@@ -155,6 +156,7 @@ export const incomesService = {
       category: string;
       date: string;
       amount: number;
+      is_paid?: boolean;
       type: 'income' | 'expense';
     }>;
   }> {

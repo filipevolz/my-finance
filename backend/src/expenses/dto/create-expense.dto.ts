@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsOptional,
   Min,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateExpenseDto {
@@ -19,4 +20,8 @@ export class CreateExpenseDto {
 
   @IsDateString()
   date: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_paid?: boolean;
 }
