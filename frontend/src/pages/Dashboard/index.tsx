@@ -14,10 +14,11 @@ import {
   X,
 } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Header } from '../../components/Header';
+import { CategoryTooltip } from '@/components/Tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -83,6 +84,7 @@ import {
   TransactionCellContent,
   TransactionPaid,
 } from './styles';
+
 
 type Period = 'this-month' | 'last-month' | 'this-year' | 'last-12-months';
 
@@ -485,6 +487,7 @@ export function Dashboard() {
                 <CategoryChartContainer>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
+                      <Tooltip content={<CategoryTooltip />} />
                       <Pie
                         data={categories}
                         cx="50%"
