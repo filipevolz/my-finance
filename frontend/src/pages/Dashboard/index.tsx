@@ -83,6 +83,9 @@ import {
   EmptyStateText,
   TransactionCellContent,
   TransactionPaid,
+  TransactionsCardMobile,
+  TransactionsList,
+  TransactionItem,
 } from './styles';
 
 
@@ -701,6 +704,59 @@ export function Dashboard() {
                 </ViewMoreButtonContainer>
               )}
             </TransactionsCard>
+
+            <TransactionsCardMobile>
+              <div>
+                <h2>Últimas transações</h2>
+                <p>Verifique suas últimas transações</p>
+              </div>
+
+              <TransactionsList>
+                {transactions.map((transaction) => (
+                  <TransactionItem key={transaction.id} className="justify-between">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        {transaction.categoryIcon && (
+                          <CategoryIcon>
+                            <IconRenderer
+                              iconName={transaction.categoryIcon}
+                              size={20}
+                              color="currentColor"
+                              fallback={<span>📁</span>}
+                            />
+                          </CategoryIcon>
+                        )}
+                        <div className="flex flex-col">
+                          <TransactionDescription>
+                            {transaction.description}
+                          </TransactionDescription>
+                          <TransactionMethod>
+                            {transaction.category}
+                          </TransactionMethod>
+                        </div>
+                      </div>
+                      <TransactionDate>
+                        {transaction.date}
+                      </TransactionDate>
+                    </div>
+
+                    <div className="flex flex-col self-start">
+                      <TransactionAmount $type={transaction.type}>
+                        {transaction.type === 'income' ? '+' : '-'}
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(Math.abs(transaction.amount))}
+                      </TransactionAmount>
+
+                      <TransactionPaid $is_paid={transaction.is_paid} $type={transaction.type}>
+                        <span>Pago:</span> {transaction.is_paid ? 'Sim' : 'Não'}
+                      </TransactionPaid>
+                    </div>
+                  </TransactionItem>
+                ))}
+              </TransactionsList>
+            </TransactionsCardMobile>
           </BottomSection>
         </DashboardContent>
       </DashboardMain>

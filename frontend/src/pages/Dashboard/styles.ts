@@ -175,9 +175,9 @@ export const PeriodButton = styled.button<{ $active?: boolean }>`
 
   &:hover {
     background-color: ${(props) =>
-      props.$active ? props.theme.primaryHover : props.theme.surfaceSecondary};
+    props.$active ? props.theme.primaryHover : props.theme.surfaceSecondary};
     border-color: ${(props) =>
-      props.$active ? props.theme.primaryHover : props.theme.borderHover};
+    props.$active ? props.theme.primaryHover : props.theme.borderHover};
   }
 
   &:focus-visible {
@@ -193,7 +193,7 @@ export const PeriodSelectButton = styled.button<{ $active?: boolean }>`
     props.$active ? '#fff' : props.theme.textSecondary};
   border: 0.0625rem solid
     ${(props) =>
-      props.$active ? props.theme.primary : props.theme.border};
+    props.$active ? props.theme.primary : props.theme.border};
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
@@ -206,13 +206,13 @@ export const PeriodSelectButton = styled.button<{ $active?: boolean }>`
 
   &:hover {
     background-color: ${(props) =>
-      props.$active
-        ? props.theme.primaryHover
-        : props.theme.surfaceSecondary};
+    props.$active
+      ? props.theme.primaryHover
+      : props.theme.surfaceSecondary};
     border-color: ${(props) =>
-      props.$active
-        ? props.theme.primaryHover
-        : props.theme.borderHover};
+    props.$active
+      ? props.theme.primaryHover
+      : props.theme.borderHover};
   }
 
   &:focus-visible {
@@ -406,6 +406,10 @@ export const ExpensesByCategoryCard = styled.article`
     margin: 0 0 1.5rem 0;
     transition: color 0.3s ease;
   }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 export const CategoryChartContainer = styled.div`
@@ -496,6 +500,7 @@ export const TransactionsCard = styled.article`
 
   @media (max-width: 768px) {
     display: none;
+    padding: 1rem;
   }
 `;
 
@@ -590,10 +595,15 @@ export const TransactionAmount = styled.span<{ $type: 'income' | 'expense' }>`
   font-weight: 600;
 `;
 
-export const TransactionPaid = styled.span<{ $is_paid?: boolean, $type: 'income' | 'expense'}>`
-  color: ${(props) => props.$type === 'expense' ? props.$is_paid ? props.theme.success : props.theme.error : props.theme.textSecondary };
+export const TransactionPaid = styled.span<{ $is_paid?: boolean, $type: 'income' | 'expense' }>`
+  color: ${(props) => props.$type === 'expense' ? props.$is_paid ? props.theme.success : props.theme.error : props.theme.textSecondary};
   font-size: 0.875rem;
   font-weight: 600;
+
+  span {
+    color: ${(props) => props.theme.textSecondary};
+    font-weight: 500;
+  }
 `;
 
 export const TransactionActions = styled.button`
@@ -632,4 +642,28 @@ export const EmptyStateText = styled.p`
   color: ${(props) => props.theme.textSecondary};
   font-size: 0.875rem;
   margin: 0;
+`;
+
+export const TransactionsCardMobile = styled(TransactionsCard)`
+display: none;
+flex-direction: column;
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+`
+
+export const TransactionsList = styled.ul`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+`;
+
+export const TransactionItem = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 0.0625rem solid ${(props) => props.theme.border};
+  padding-top: 0.5rem;
 `;
