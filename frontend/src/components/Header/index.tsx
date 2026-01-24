@@ -73,19 +73,19 @@ export function Header() {
             <Menu size={20} />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNavClick('dashboard')}>
               <LayoutDashboard size={20} />
               Dashboard
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNavClick('transactions')}>
               <List size={20} />
               Transações
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNavClick('analytics')}>
               <ChartLine size={20} />
               Análises
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNavClick('account')}>
               <User size={20} />
               Conta
             </DropdownMenuItem>
@@ -93,7 +93,7 @@ export function Header() {
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
               Trocar tema
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut size={20} />
               Sair
             </DropdownMenuItem>
