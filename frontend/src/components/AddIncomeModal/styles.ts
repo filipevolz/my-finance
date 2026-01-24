@@ -40,6 +40,8 @@ export const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+
+  color: ${(props) => props.theme.text};
 `;
 
 export const FormRow = styled.div`
