@@ -3,7 +3,7 @@ import { Avatar } from '@/components/ui/avatar';
 
 export const HeaderContainer = styled.header`
   background-color: ${(props) => props.theme.surface};
-  padding: 3rem 4rem;
+  padding: 2rem 4rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
