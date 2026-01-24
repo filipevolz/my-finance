@@ -62,7 +62,7 @@ export function Login() {
     <LoginContainer>
       <LoginCard>
         <LogoWrapper>
-          <Logo size="medium" />
+          <Logo size="large" />
         </LogoWrapper>
         <Title>Bem-vindo de volta</Title>
         <Subtitle>Faça login para continuar</Subtitle>

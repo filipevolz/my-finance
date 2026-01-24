@@ -7,16 +7,16 @@ interface LogoProps {
 
 export function Logo({ size = 'medium' }: LogoProps) {
   const sizes = {
-    small: { img: 2, text: 1.5 },
-    medium: { img: 3, text: 2 },
-    large: { img: 4, text: 2.5 },
+    small: { img: 1.5, text: 1.5 },
+    medium: { img: 2, text: 2 },
+    large: { img: 2.5, text: 2.5 },
   };
 
   const currentSize = sizes[size];
 
   return (
     <LogoContainer>
-      <LogoImage src={logoImage} alt="MyFinance Logo" />
+      <LogoImage $size={currentSize.img} src={logoImage} alt="MyFinance Logo" />
       <LogoText $fontSize={currentSize.text}>
         <span className="my">My</span>
         <span className="finance">Finance</span>

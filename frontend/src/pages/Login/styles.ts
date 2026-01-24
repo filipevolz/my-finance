@@ -16,6 +16,10 @@ export const LoginCard = styled.div`
   border-radius: 0.75rem;
   padding: 2.5rem;
   box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 export const LogoWrapper = styled.div`
@@ -127,5 +131,6 @@ export const RegisterLink = styled.div`
     }
   }
 `;
+
 
 

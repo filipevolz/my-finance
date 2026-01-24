@@ -3,12 +3,17 @@ import styled from 'styled-components';
 export const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  padding-right: 3rem;
+  justify-content: center;
 `;
 
-export const LogoImage = styled.img`
-  height: 6rem;
+export interface LogoImageProps {
+  $size: number;
+}
+
+export const LogoImage = styled.img<LogoImageProps>`
+  height: ${(props) => `${props.$size}rem`};
   width: auto;
+  margin-right: 0.5rem;
 `;
 
 export interface LogoTextProps {
@@ -18,7 +23,6 @@ export interface LogoTextProps {
 export const LogoText = styled.h1<LogoTextProps>`
   font-size: ${(props) => `${props.$fontSize}rem`};
   font-weight: 600;
-  margin-left: -3rem;
 
   .my {
     color: #4ade80;

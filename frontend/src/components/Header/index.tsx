@@ -64,7 +64,7 @@ export function Header() {
   return (
     <HeaderContainer>
       <button type="button" onClick={() => navigate('/dashboard')}>
-        <Logo size="medium" />
+        <Logo size="large" />
       </button>
 
       <NavItemIconButton type="button" aria-label="Menu">
