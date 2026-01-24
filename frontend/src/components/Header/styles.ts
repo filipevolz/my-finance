@@ -123,6 +123,8 @@ export const IconButton = styled.button`
 export const StyledAvatar = styled(Avatar)`
   border-radius: 50%;
   overflow: hidden;
+  width: 2.5rem;
+  height: 2.5rem;
 
   [data-slot='avatar-fallback'] {
     background-color: ${(props) => props.theme.primary};
