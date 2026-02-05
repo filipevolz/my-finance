@@ -6,6 +6,8 @@ export interface CreateExpenseRequest {
   amount: number;
   date: string;
   is_paid?: boolean;
+  cardId?: string | null;
+  installments?: number | null;
 }
 
 export interface UpdateExpenseRequest {
@@ -14,6 +16,8 @@ export interface UpdateExpenseRequest {
   amount?: number;
   date?: string;
   is_paid?: boolean;
+  cardId?: string | null;
+  installments?: number | null;
 }
 
 export interface Expense {
@@ -22,8 +26,13 @@ export interface Expense {
   name: string | null;
   category: string;
   amount: number;
-  date: string;
+  date: string; // Data de vencimento/pagamento (para filtros)
+  purchaseDate: string | null; // Data original da compra (para exibição)
   is_paid: boolean;
+  cardId: string | null;
+  installments: number | null;
+  installmentNumber: number | null;
+  groupId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,16 +77,30 @@ export const expensesService = {
   async update(
     id: string,
     data: UpdateExpenseRequest,
+    updateGroup?: boolean,
   ): Promise<UpdateExpenseResponse> {
+    const params = updateGroup ? { updateGroup: 'true' } : {};
     const response = await api.put<UpdateExpenseResponse>(
       `/expenses/${id}`,
       data,
+      { params },
     );
     return response.data;
   },
 
   async delete(id: string): Promise<void> {
     await api.delete(`/expenses/${id}`);
+  },
+
+  async findByGroupId(groupId: string): Promise<ExpensesResponse> {
+    const response = await api.get<ExpensesResponse>(
+      `/expenses/group/${groupId}`,
+    );
+    return response.data;
+  },
+
+  async deleteGroup(groupId: string): Promise<void> {
+    await api.delete(`/expenses/group/${groupId}`);
   },
 
   async findByCategory(category: string): Promise<ExpensesResponse> {

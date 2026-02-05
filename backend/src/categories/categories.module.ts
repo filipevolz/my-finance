@@ -21,10 +21,8 @@ export class CategoriesModule implements OnModuleInit {
     if (existingCategories.length === 0) {
       // Popular categorias apenas se o banco estiver vazio
       await this.categoriesService.createMany(categoriesSeed);
-      console.log('✅ Categorias populadas com sucesso!');
     } else {
       // Se já existem categorias, atualizar os ícones para usar Lucide React
-      console.log('🔄 Atualizando ícones das categorias existentes...');
       await this.categoriesService.updateCategoryIcons();
     }
   }

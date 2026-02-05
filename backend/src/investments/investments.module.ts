@@ -44,7 +44,6 @@ export class InvestmentsModule implements OnModuleInit {
     const existingAssetTypes = await this.investmentsService.getAssetTypes();
     if (existingAssetTypes.length === 0) {
       await this.investmentsService.seedAssetTypes(assetTypesSeed);
-      console.log('✅ Asset types populados com sucesso!');
     }
 
     // Popular exchanges
@@ -52,7 +51,6 @@ export class InvestmentsModule implements OnModuleInit {
       const exchangesSeed = await loadExchangesSeed();
       if (exchangesSeed.length > 0) {
         await this.investmentsService.seedExchanges(exchangesSeed);
-        console.log(`✅ ${exchangesSeed.length} exchanges populadas com sucesso!`);
       }
     } catch (error) {
       console.error('⚠️ Erro ao popular exchanges:', error);
@@ -63,7 +61,6 @@ export class InvestmentsModule implements OnModuleInit {
       const assetsSeed = await loadAssetsSeed();
       if (assetsSeed.length > 0) {
         await this.investmentsService.seedAssets(assetsSeed);
-        console.log(`✅ ${assetsSeed.length} assets populados com sucesso!`);
       }
     } catch (error) {
       console.error('⚠️ Erro ao popular assets:', error);

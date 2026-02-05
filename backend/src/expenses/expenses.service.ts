@@ -2,14 +2,17 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { Expense } from './expense.entity';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { CategoriesService } from '../categories/categories.service';
 import { CategoryType } from '../categories/category.entity';
+import { CardsService } from '../cards/cards.service';
 
 @Injectable()
 export class ExpensesService {
@@ -17,6 +20,7 @@ export class ExpensesService {
     @InjectRepository(Expense)
     private expensesRepository: Repository<Expense>,
     private categoriesService: CategoriesService,
+    private cardsService: CardsService,
   ) {}
 
   async create(
@@ -26,18 +30,163 @@ export class ExpensesService {
     // Converter string YYYY-MM-DD para Date object sem problemas de timezone
     const dateStr = createExpenseDto.date.split('T')[0];
     const [year, month, day] = dateStr.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
+    const purchaseDate = new Date(year, month - 1, day);
+
+    const installments = createExpenseDto.installments || 1;
+    const isParceled = installments > 1 && createExpenseDto.cardId;
+
+    // Se foi pago no cartão, verificar limite disponível
+    let card: Awaited<ReturnType<typeof this.cardsService.findOne>> | null = null;
+    if (createExpenseDto.cardId) {
+      card = await this.cardsService.findOne(
+        createExpenseDto.cardId,
+        userId,
+      );
+      
+      // Recalcular o limite usado atual (antes de criar esta expense)
+      await this.cardsService.recalculateUsedLimit(createExpenseDto.cardId, userId);
+      
+      // Buscar o cartão novamente para ter o usedLimit atualizado
+      const updatedCard = await this.cardsService.findOne(
+        createExpenseDto.cardId,
+        userId,
+      );
+      
+      // Calcular limite disponível
+      const availableLimit = (updatedCard.totalLimit ?? 0) - (updatedCard.usedLimit ?? 0);
+      
+      if (availableLimit < createExpenseDto.amount) {
+        throw new BadRequestException(
+          'Limite disponível do cartão insuficiente',
+        );
+      }
+    }
+
+    // Se for parcelado, criar múltiplas despesas com mesmo groupId
+    if (isParceled && createExpenseDto.cardId && card) {
+      // Gerar um UUID para o grupo
+      const groupId = randomUUID();
+      const installmentAmount = Math.floor(createExpenseDto.amount / installments);
+      const lastInstallmentAmount = createExpenseDto.amount - (installmentAmount * (installments - 1));
+      
+      const expenses: Expense[] = [];
+
+      // Calcular a data da primeira parcela baseado no fechamento do cartão
+      const purchaseDay = purchaseDate.getDate();
+      const purchaseMonth = purchaseDate.getMonth();
+      const purchaseYear = purchaseDate.getFullYear();
+
+      // Se a compra foi antes do fechamento, a primeira parcela entra no mês atual
+      // Se foi depois do fechamento, a primeira parcela entra no próximo mês
+      let firstInstallmentMonth = purchaseMonth;
+      let firstInstallmentYear = purchaseYear;
+
+      if (purchaseDay > card.closingDate) {
+        // Compra depois do fechamento, primeira parcela no próximo mês
+        firstInstallmentMonth = purchaseMonth + 1;
+        if (firstInstallmentMonth > 11) {
+          firstInstallmentMonth = 0;
+          firstInstallmentYear = purchaseYear + 1;
+        }
+      }
+
+      // Criar cada parcela
+      for (let i = 0; i < installments; i++) {
+        // Calcular mês da parcela
+        let installmentMonth = firstInstallmentMonth + i;
+        let installmentYear = firstInstallmentYear;
+
+        // Ajustar se passar de dezembro
+        while (installmentMonth > 11) {
+          installmentMonth -= 12;
+          installmentYear += 1;
+        }
+
+        // Data de vencimento do cartão no mês da parcela
+        const dueDate = new Date(installmentYear, installmentMonth, card.dueDate);
+        
+        // Valor da parcela (última pode ter diferença de centavos)
+        const amount = i === installments - 1 ? lastInstallmentAmount : installmentAmount;
+
+        const expense = this.expensesRepository.create({
+          userId,
+          name: createExpenseDto.name ? `${createExpenseDto.name} (${i + 1}/${installments})` : null,
+          category: createExpenseDto.category,
+          amount,
+          date: dueDate, // Data de vencimento do cartão
+          purchaseDate: purchaseDate, // Data original da compra
+          is_paid: false, // Parcelas não são pagas automaticamente
+          cardId: createExpenseDto.cardId,
+          installments,
+          installmentNumber: i + 1,
+          groupId, // Todas as parcelas têm o mesmo groupId
+        });
+
+        expenses.push(expense);
+      }
+
+      // Salvar todas as parcelas
+      const savedExpenses = await this.expensesRepository.save(expenses);
+      
+      // Recalcular o limite usado do cartão após criar as expenses
+      if (createExpenseDto.cardId) {
+        await this.cardsService.recalculateUsedLimit(createExpenseDto.cardId, userId);
+      }
+      
+      return savedExpenses[0]; // Retornar a primeira parcela
+    }
+
+    // Despesa única (não parcelada)
+    // Se foi paga no cartão, calcular a data de vencimento baseada no fechamento
+    let expenseDate = purchaseDate;
+    let expensePurchaseDate: Date | null = null;
+    
+    if (createExpenseDto.cardId && card) {
+      const purchaseDay = purchaseDate.getDate();
+      const purchaseMonth = purchaseDate.getMonth();
+      const purchaseYear = purchaseDate.getFullYear();
+
+      // Se a compra foi antes ou no dia do fechamento, entra na fatura do mês atual
+      // Se foi depois do fechamento, entra na fatura do próximo mês
+      let dueMonth = purchaseMonth;
+      let dueYear = purchaseYear;
+
+      if (purchaseDay > card.closingDate) {
+        // Compra depois do fechamento, vencimento no próximo mês
+        dueMonth = purchaseMonth + 1;
+        if (dueMonth > 11) {
+          dueMonth = 0;
+          dueYear = purchaseYear + 1;
+        }
+      }
+
+      // Data de vencimento do cartão
+      expenseDate = new Date(dueYear, dueMonth, card.dueDate);
+      // Guardar a data original da compra para exibição
+      expensePurchaseDate = purchaseDate;
+    }
 
     const expense = this.expensesRepository.create({
       userId,
       name: createExpenseDto.name || null,
       category: createExpenseDto.category,
       amount: createExpenseDto.amount,
-      date,
+      date: expenseDate, // Data de vencimento se for cartão, senão data da compra
+      purchaseDate: expensePurchaseDate, // Data original da compra (quando diferente da data de vencimento)
       is_paid: createExpenseDto.is_paid ?? false,
+      cardId: createExpenseDto.cardId || null,
+      installments: installments > 1 ? installments : null,
+      installmentNumber: null,
     });
 
-    return await this.expensesRepository.save(expense);
+    const savedExpense = await this.expensesRepository.save(expense);
+    
+    // Recalcular o limite usado do cartão após criar a expense
+    if (createExpenseDto.cardId) {
+      await this.cardsService.recalculateUsedLimit(createExpenseDto.cardId, userId);
+    }
+    
+    return savedExpense;
   }
 
   async findAll(userId: string): Promise<Expense[]> {
@@ -69,24 +218,182 @@ export class ExpensesService {
     id: string,
     userId: string,
     updateExpenseDto: UpdateExpenseDto,
+    updateGroup?: boolean,
   ): Promise<Expense> {
     const expense = await this.findOne(id, userId);
 
-    Object.assign(expense, updateExpenseDto);
+    // Se deve atualizar o grupo inteiro e a expense tem groupId
+    if (updateGroup && expense.groupId) {
+      const groupExpenses = await this.findByGroupId(expense.groupId, userId);
+      
+      // Atualizar todas as expenses do grupo
+      for (const groupExpense of groupExpenses) {
+        Object.assign(groupExpense, updateExpenseDto);
 
-    if (updateExpenseDto.date) {
-      // Converter string YYYY-MM-DD para Date object sem problemas de timezone
-      const dateStr = updateExpenseDto.date.split('T')[0];
-      const [year, month, day] = dateStr.split('-').map(Number);
-      expense.date = new Date(year, month - 1, day);
+        if (updateExpenseDto.date) {
+          // Para expenses parceladas, ajustar a data baseado no installmentNumber
+          const dateStr = updateExpenseDto.date.split('T')[0];
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const baseDate = new Date(year, month - 1, day);
+          
+          // Se for parcelada, manter a lógica de datas das parcelas
+          if (groupExpense.installments && groupExpense.installmentNumber) {
+            // Manter a data original da parcela (não alterar)
+            // Ou implementar lógica para recalcular datas das parcelas
+            // Por enquanto, não alteramos a data de parcelas
+          } else {
+            groupExpense.date = baseDate;
+          }
+        }
+
+        await this.expensesRepository.save(groupExpense);
+      }
+
+      return expense; // Retornar a expense original
     }
 
-    return await this.expensesRepository.save(expense);
+    // Atualização individual
+    const oldCardId = expense.cardId;
+    const oldAmount = expense.amount;
+    
+    // Determinar o novo cardId - se foi enviado no DTO (mesmo que null), usar o valor do DTO
+    // Se não foi enviado, manter o valor atual
+    let newCardId: string | null | undefined;
+    if (updateExpenseDto.hasOwnProperty('cardId')) {
+      newCardId = updateExpenseDto.cardId ?? null;
+    } else {
+      newCardId = expense.cardId;
+    }
+    
+    const newAmount = updateExpenseDto.amount !== undefined ? updateExpenseDto.amount : expense.amount;
+
+    // Normalizar para comparação (null e undefined são tratados como "sem cartão")
+    const oldCardIdNormalized = oldCardId ?? null;
+    const newCardIdNormalized = newCardId ?? null;
+
+    // Se mudou o cartão ou o valor, verificar limite antes de atualizar
+    const cardChanged = oldCardIdNormalized !== newCardIdNormalized;
+    const amountChanged = oldAmount !== newAmount;
+    
+    if (cardChanged || amountChanged) {
+      // Se agora tem cartão, verificar limite disponível ANTES de atualizar
+      if (newCardIdNormalized) {
+        const newCard = await this.cardsService.findOne(newCardIdNormalized, userId);
+        
+        // Recalcular o limite usado atual (sem incluir esta expense ainda)
+        await this.cardsService.recalculateUsedLimit(newCardIdNormalized, userId);
+        
+        // Buscar o cartão novamente para ter o usedLimit atualizado
+        const updatedCard = await this.cardsService.findOne(newCardIdNormalized, userId);
+        
+        // Calcular limite disponível
+        const availableLimit = (updatedCard.totalLimit ?? 0) - (updatedCard.usedLimit ?? 0);
+        
+        if (availableLimit < newAmount) {
+          throw new BadRequestException(
+            'Limite disponível do cartão insuficiente',
+          );
+        }
+      }
+    }
+
+    // Atualizar a expense primeiro
+    Object.assign(expense, updateExpenseDto);
+
+    // Se a data foi atualizada ou o cartão mudou, recalcular a data de vencimento se tiver cartão
+    if (updateExpenseDto.date || cardChanged) {
+      // Converter string YYYY-MM-DD para Date object sem problemas de timezone
+      const dateStr = (updateExpenseDto.date || expense.date.toISOString().split('T')[0]).split('T')[0];
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const purchaseDate = new Date(year, month - 1, day);
+
+      // Se tem cartão, calcular data de vencimento baseada no fechamento
+      if (newCardIdNormalized) {
+        const card = await this.cardsService.findOne(newCardIdNormalized, userId);
+        const purchaseDay = purchaseDate.getDate();
+        const purchaseMonth = purchaseDate.getMonth();
+        const purchaseYear = purchaseDate.getFullYear();
+
+        // Se a compra foi antes ou no dia do fechamento, entra na fatura do mês atual
+        // Se foi depois do fechamento, entra na fatura do próximo mês
+        let dueMonth = purchaseMonth;
+        let dueYear = purchaseYear;
+
+        if (purchaseDay > card.closingDate) {
+          // Compra depois do fechamento, vencimento no próximo mês
+          dueMonth = purchaseMonth + 1;
+          if (dueMonth > 11) {
+            dueMonth = 0;
+            dueYear = purchaseYear + 1;
+          }
+        }
+
+        // Data de vencimento do cartão
+        expense.date = new Date(dueYear, dueMonth, card.dueDate);
+        // Guardar a data original da compra para exibição
+        expense.purchaseDate = purchaseDate;
+      } else {
+        // Se não tem cartão, usar a data da compra
+        expense.date = purchaseDate;
+        expense.purchaseDate = null; // Limpar purchaseDate quando não tem cartão
+      }
+    }
+
+    // Salvar a expense primeiro
+    const savedExpense = await this.expensesRepository.save(expense);
+
+    // Depois de salvar, recalcular os limites dos cartões afetados
+    if (cardChanged || amountChanged) {
+      // Se tinha cartão antes (e mudou), recalcular o limite usado do cartão antigo
+      if (oldCardIdNormalized && oldCardIdNormalized !== newCardIdNormalized) {
+        await this.cardsService.recalculateUsedLimit(oldCardIdNormalized, userId);
+      }
+
+      // Se agora tem cartão, recalcular o limite usado do cartão novo
+      if (newCardIdNormalized) {
+        await this.cardsService.recalculateUsedLimit(newCardIdNormalized, userId);
+      }
+    }
+
+    return savedExpense;
+  }
+
+  async findByGroupId(groupId: string, userId: string): Promise<Expense[]> {
+    return await this.expensesRepository.find({
+      where: { groupId, userId },
+      order: { installmentNumber: 'ASC' },
+    });
   }
 
   async remove(id: string, userId: string): Promise<void> {
     const expense = await this.findOne(id, userId);
+    const cardId = expense.cardId;
+    
+    // Remover a expense primeiro
     await this.expensesRepository.remove(expense);
+    
+    // Depois, recalcular o limite usado do cartão (se tinha cartão)
+    if (cardId) {
+      await this.cardsService.recalculateUsedLimit(cardId, userId);
+    }
+  }
+
+  async removeGroup(groupId: string, userId: string): Promise<void> {
+    const expenses = await this.findByGroupId(groupId, userId);
+    
+    if (expenses.length === 0) {
+      throw new NotFoundException('Grupo de despesas não encontrado');
+    }
+
+    const cardId = expenses[0].cardId;
+    
+    // Remover as expenses primeiro
+    await this.expensesRepository.remove(expenses);
+    
+    // Depois, recalcular o limite usado do cartão (se tinha cartão)
+    if (cardId) {
+      await this.cardsService.recalculateUsedLimit(cardId, userId);
+    }
   }
 
   async findByCategory(userId: string, category: string): Promise<Expense[]> {

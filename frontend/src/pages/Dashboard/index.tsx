@@ -26,6 +26,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -103,6 +113,9 @@ export function Dashboard() {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [showDeleteGroupDialog, setShowDeleteGroupDialog] = useState(false);
+  const [pendingDeleteExpenseId, setPendingDeleteExpenseId] = useState<string | null>(null);
+  const [pendingDeleteGroupId, setPendingDeleteGroupId] = useState<string | null>(null);
   const [stats, setStats] = useState({
     balance: 0,
     balanceChange: 0,
@@ -127,6 +140,7 @@ export function Dashboard() {
       categoryIcon: string;
       category: string;
       date: string;
+      purchaseDate?: string | null;
       amount: number;
       is_paid?: boolean;
       type: 'income' | 'expense';
@@ -194,6 +208,12 @@ export function Dashboard() {
         // Converter data YYYY-MM-DD para DD/MM/YYYY sem problemas de timezone
         const dateParts = trans.date.split('-');
         const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+        const formattedPurchaseDate = trans.purchaseDate
+          ? (() => {
+              const purchaseParts = trans.purchaseDate.split('-');
+              return `${purchaseParts[2]}/${purchaseParts[1]}/${purchaseParts[0]}`;
+            })()
+          : null;
 
         return {
           id: trans.id,
@@ -201,6 +221,7 @@ export function Dashboard() {
           categoryIcon: trans.categoryIcon,
           category: trans.category,
           date: formattedDate,
+          purchaseDate: formattedPurchaseDate,
           amount: trans.amount / 100,
           type: trans.type,
           is_paid: trans.type === 'expense' ? trans.is_paid ?? false : undefined,
@@ -266,20 +287,54 @@ export function Dashboard() {
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
-    if (
-      !confirm('Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.')
-    ) {
-      return;
+    try {
+      // Buscar a expense para verificar se tem groupId
+      const expenseResponse = await expensesService.findOne(expenseId);
+      const expense = expenseResponse.data;
+
+      // Verificar se tem groupId (pode ser null, undefined ou string vazia)
+      if (expense.groupId && expense.groupId.trim() !== '') {
+        // Se tem groupId, mostrar diálogo perguntando se quer excluir todo o grupo
+        setPendingDeleteExpenseId(expenseId);
+        setPendingDeleteGroupId(expense.groupId);
+        setShowDeleteGroupDialog(true);
+      } else {
+        // Se não tem groupId, excluir normalmente
+        if (
+          !confirm('Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.')
+        ) {
+          return;
+        }
+        await expensesService.delete(expenseId);
+        loadStats();
+        loadCategories();
+        loadTransactions();
+      }
+    } catch (error) {
+      console.error('Erro ao excluir despesa:', error);
+      alert('Erro ao excluir despesa. Tente novamente.');
     }
+  };
+
+  const handleDeleteGroupConfirm = async (deleteGroup: boolean) => {
+    if (!pendingDeleteExpenseId) return;
 
     try {
-      await expensesService.delete(expenseId);
+      if (deleteGroup && pendingDeleteGroupId) {
+        await expensesService.deleteGroup(pendingDeleteGroupId);
+      } else {
+        await expensesService.delete(pendingDeleteExpenseId);
+      }
       loadStats();
       loadCategories();
       loadTransactions();
     } catch (error) {
       console.error('Erro ao excluir despesa:', error);
       alert('Erro ao excluir despesa. Tente novamente.');
+    } finally {
+      setShowDeleteGroupDialog(false);
+      setPendingDeleteExpenseId(null);
+      setPendingDeleteGroupId(null);
     }
   };
 
@@ -300,6 +355,7 @@ export function Dashboard() {
   }
 
   return (
+    <>
     <DashboardWrapper>
       <Header />
       <DashboardMain>
@@ -567,7 +623,8 @@ export function Dashboard() {
                   <tr>
                     <th>Descrição</th>
                     <th>Categoria</th>
-                    <th>Data</th>
+                    <th>Data de Compra</th>
+                    <th>Data de Pagamento</th>
                     <th>Valor</th>
                     <th>Pago</th>
                     <th></th>
@@ -584,6 +641,9 @@ export function Dashboard() {
                           </TransactionCell>
                           <TransactionCell>
                             <Skeleton className="h-4 w-24" />
+                          </TransactionCell>
+                          <TransactionCell>
+                            <Skeleton className="h-4 w-20" />
                           </TransactionCell>
                           <TransactionCell>
                             <Skeleton className="h-4 w-20" />
@@ -624,7 +684,16 @@ export function Dashboard() {
                           </TransactionMethod>
                         </TransactionCell>
                         <TransactionCell>
-                          <TransactionDate>{transaction.date}</TransactionDate>
+                          <TransactionDate>
+                            {transaction.type === 'expense' && transaction.purchaseDate
+                              ? transaction.purchaseDate
+                              : transaction.date}
+                          </TransactionDate>
+                        </TransactionCell>
+                        <TransactionCell>
+                          <TransactionDate>
+                            {transaction.date}
+                          </TransactionDate>
                         </TransactionCell>
                         <TransactionCell>
                           <TransactionAmount $type={transaction.type}>
@@ -783,5 +852,25 @@ export function Dashboard() {
         expenseId={editingExpenseId}
       />
     </DashboardWrapper>
+
+    <AlertDialog open={showDeleteGroupDialog} onOpenChange={setShowDeleteGroupDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir grupo de despesas</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta despesa faz parte de um grupo parcelado. Deseja excluir apenas esta parcela ou todo o grupo?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => handleDeleteGroupConfirm(false)}>
+            Apenas esta parcela
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={() => handleDeleteGroupConfirm(true)}>
+            Todo o grupo
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

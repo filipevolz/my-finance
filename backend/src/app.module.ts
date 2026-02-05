@@ -9,6 +9,7 @@ import { IncomesModule } from './incomes/incomes.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { CategoriesModule } from './categories/categories.module';
 import { InvestmentsModule } from './investments/investments.module';
+import { CardsModule } from './cards/cards.module';
 import { User } from './users/user.entity';
 import { Income } from './incomes/income.entity';
 import { Expense } from './expenses/expense.entity';
@@ -17,6 +18,7 @@ import { InvestmentOperation } from './investments/investment-operation.entity';
 import { AssetType } from './investments/asset-type.entity';
 import { Exchange } from './investments/exchange.entity';
 import { Asset } from './investments/asset.entity';
+import { Card } from './cards/card.entity';
 
 @Module({
   imports: [
@@ -44,7 +46,7 @@ import { Asset } from './investments/asset.entity';
           ssl: {
             rejectUnauthorized: false,
           },
-          entities: [User, Income, Expense, Category, InvestmentOperation, AssetType, Exchange, Asset],
+          entities: [User, Income, Expense, Category, InvestmentOperation, AssetType, Exchange, Asset, Card],
           synchronize: true,
         };
       },
@@ -56,6 +58,7 @@ import { Asset } from './investments/asset.entity';
     ExpensesModule,
     CategoriesModule,
     InvestmentsModule,
+    CardsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

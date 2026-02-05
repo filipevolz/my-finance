@@ -21,7 +21,17 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { X, CreditCard } from 'lucide-react';
 import { expensesService } from '../../services/expenses.service';
 import type {
   CreateExpenseRequest,
@@ -29,6 +39,8 @@ import type {
 } from '../../services/expenses.service';
 import { categoriesService } from '../../services/categories.service';
 import type { Category, CategoryType } from '../../services/categories.service';
+import { cardsService } from '../../services/cards.service';
+import type { Card } from '../../services/cards.service';
 import { IconRenderer } from '../../utils/iconMapper';
 import {
   ModalForm,
@@ -45,6 +57,14 @@ import {
   StyledLabel,
   StyledDialogClose,
 } from '../AddIncomeModal/styles';
+import styled from 'styled-components';
+
+const InstallmentValueText = styled.div`
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: ${(props) => props.theme.textSecondary};
+  font-weight: 500;
+`;
 
 const expenseSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -62,7 +82,32 @@ const expenseSchema = z.object({
     ),
   date: z.date(),
   is_paid: z.boolean(),
-});
+  paidWithCard: z.boolean(),
+  cardId: z.string().optional(),
+  installments: z.number().optional(),
+}).refine(
+  (data) => {
+    if (data.paidWithCard && !data.cardId) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Selecione um cartão quando pagar com cartão',
+    path: ['cardId'],
+  },
+).refine(
+  (data) => {
+    if (data.cardId && (!data.installments || data.installments < 1)) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Informe o número de parcelas',
+    path: ['installments'],
+  },
+);
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
@@ -83,16 +128,34 @@ export function AddExpenseModal({
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [showUpdateGroupDialog, setShowUpdateGroupDialog] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<ExpenseFormData | null>(null);
+  const [expenseGroupId, setExpenseGroupId] = useState<string | null>(null);
   const isEditing = !!expenseId;
 
   useEffect(() => {
     if (open) {
       setIsLoadingCategories(true);
-      void categoriesService
-        .findAll('expense' as CategoryType)
-        .then((response) => setCategories(response.data))
-        .catch(() => setCategories([]))
-        .finally(() => setIsLoadingCategories(false));
+      void Promise.all([
+        categoriesService
+          .findAll('expense' as CategoryType)
+          .then((response) => setCategories(response.data))
+          .catch(() => setCategories([])),
+        cardsService
+          .findAll()
+          .then((response) => {
+            setCards(response.data);
+            // Se não estiver editando, buscar cartão padrão
+            if (!expenseId) {
+              const defaultCard = response.data.find((card) => card.isDefault);
+              if (defaultCard) {
+                // Não definir automaticamente, apenas quando marcar "Pago no cartão"
+              }
+            }
+          })
+          .catch(() => setCards([])),
+      ]).finally(() => setIsLoadingCategories(false));
     }
   }, [open]);
 
@@ -100,6 +163,8 @@ export function AddExpenseModal({
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors },
     reset,
   } = useForm<ExpenseFormData>({
@@ -110,6 +175,9 @@ export function AddExpenseModal({
       amount: '',
       date: new Date(),
       is_paid: false,
+      paidWithCard: false,
+      cardId: undefined,
+      installments: undefined,
     },
     mode: 'onChange',
   });
@@ -128,6 +196,7 @@ export function AddExpenseModal({
           const [year, month, day] = dateStr.split('-').map(Number);
           const expenseDate = new Date(year, month - 1, day);
   
+          setExpenseGroupId(expense.groupId || null);
           reset({
             name: expense.name || '',
             category: expense.category,
@@ -137,6 +206,9 @@ export function AddExpenseModal({
             }).format(expense.amount / 100),
             date: expenseDate,
             is_paid: expense.is_paid ?? false,
+            paidWithCard: !!expense.cardId,
+            cardId: expense.cardId || undefined,
+            installments: expense.installments || undefined,
           });
         });
     }
@@ -149,12 +221,15 @@ export function AddExpenseModal({
         amount: '',
         date: new Date(),
         is_paid: false,
+        paidWithCard: false,
+        cardId: undefined,
+        installments: undefined,
       });
     }
   }, [open, expenseId, isLoadingCategories, categories.length, reset]);
   
 
-  const onSubmit = async (data: ExpenseFormData) => {
+  const performUpdate = async (data: ExpenseFormData, updateGroup: boolean) => {
     setIsLoading(true);
     setError(null);
 
@@ -174,8 +249,12 @@ export function AddExpenseModal({
           amount: amountInCents,
           date: `${data.date.getFullYear()}-${String(data.date.getMonth() + 1).padStart(2, '0')}-${String(data.date.getDate()).padStart(2, '0')}`,
           is_paid: data.is_paid ?? false,
+          // Sempre enviar cardId explicitamente (null se não tiver, string se tiver)
+          // Isso permite ao backend detectar quando o cartão foi adicionado ou removido
+          cardId: data.paidWithCard && data.cardId ? data.cardId : null,
+          installments: data.paidWithCard && data.cardId && data.installments ? data.installments : null,
         };
-        await expensesService.update(expenseId, requestData);
+        await expensesService.update(expenseId, requestData, updateGroup);
       } else {
         const requestData: CreateExpenseRequest = {
           name: data.name || undefined,
@@ -183,10 +262,13 @@ export function AddExpenseModal({
           amount: amountInCents,
           date: `${data.date.getFullYear()}-${String(data.date.getMonth() + 1).padStart(2, '0')}-${String(data.date.getDate()).padStart(2, '0')}`,
           is_paid: data.is_paid ?? false,
+          cardId: data.cardId || null,
+          installments: data.paidWithCard && data.cardId && data.installments ? data.installments : null,
         };
         await expensesService.create(requestData);
       }
       reset();
+      setExpenseGroupId(null);
       onOpenChange(false);
       onSuccess?.();
     } catch (err: unknown) {
@@ -200,7 +282,33 @@ export function AddExpenseModal({
     }
   };
 
+  const onSubmit = async (data: ExpenseFormData) => {
+    // Se está editando e a expense tem groupId, mostrar diálogo de confirmação
+    if (isEditing && expenseId && expenseGroupId) {
+      setPendingFormData(data);
+      setShowUpdateGroupDialog(true);
+      return;
+    }
+
+    // Caso contrário, fazer update normalmente
+    await performUpdate(data, false);
+  };
+
+  const handleUpdateGroupConfirm = async (updateGroup: boolean) => {
+    if (pendingFormData) {
+      await performUpdate(pendingFormData, updateGroup);
+    }
+    setShowUpdateGroupDialog(false);
+    setPendingFormData(null);
+  };
+
+  const handleUpdateGroupCancel = () => {
+    setShowUpdateGroupDialog(false);
+    setPendingFormData(null);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
         <DialogOverlay />
@@ -381,12 +489,24 @@ export function AddExpenseModal({
             </FormRow>
 
             <FormRow>
-              <FormGroup className="!flex-row !items-center !gap-2">
+              <FormGroup className="flex-row items-center gap-2">
                 <Controller
                   name="is_paid"
                   control={control}
                   render={({ field }) => (
-                    <Checkbox id="is_paid" checked={field.value} onCheckedChange={field.onChange} />
+                    <Checkbox
+                      id="is_paid"
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        // Se marcar "Pago", desmarcar "Pago no cartão" e limpar cartão
+                        if (checked) {
+                          setValue('paidWithCard', false);
+                          setValue('cardId', undefined);
+                          setValue('installments', undefined);
+                        }
+                      }}
+                    />
                   )}
                 />
                 <StyledLabel htmlFor="is_paid">Pago</StyledLabel>
@@ -394,7 +514,157 @@ export function AddExpenseModal({
                   <ErrorMessage>{errors.is_paid.message}</ErrorMessage>
                 )}
               </FormGroup>
+
+              {cards.length > 0 && (
+                <FormGroup className="flex-row items-center gap-2">
+                  <Controller
+                    name="paidWithCard"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="paidWithCard"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked);
+                          // Se marcar "Pago no cartão", desmarcar "Pago" e selecionar cartão padrão se necessário
+                          if (checked) {
+                            setValue('is_paid', false);
+                            const currentCardId = watch('cardId');
+                            if (!currentCardId) {
+                              const defaultCard = cards.find((card) => card.isDefault);
+                              if (defaultCard) {
+                                setValue('cardId', defaultCard.id);
+                              }
+                            }
+                          } else {
+                            // Se desmarcou, limpar cartão e parcelas
+                            setValue('cardId', undefined);
+                            setValue('installments', undefined);
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <StyledLabel htmlFor="paidWithCard">Pago no cartão</StyledLabel>
+                  {errors.paidWithCard && (
+                    <ErrorMessage>{errors.paidWithCard.message}</ErrorMessage>
+                  )}
+                </FormGroup>
+              )}
             </FormRow>
+
+            {watch('paidWithCard') && cards.length > 0 && (
+              <FormRow>
+                <FormGroup>
+                  <StyledLabel htmlFor="cardId">
+                    Cartão <span aria-label="obrigatório">*</span>
+                  </StyledLabel>
+                  <Controller
+                    name="cardId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value || 'none'}
+                        onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)}
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger
+                          id="cardId"
+                          className="w-full py-5"
+                          aria-invalid={!!errors.cardId}
+                        >
+                          <SelectValue placeholder="Selecione um cartão" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cards.map((card) => (
+                            <SelectItem key={card.id} value={card.id}>
+                              <CategorySelectItemContent>
+                                <CreditCard size={16} />
+                                {card.nickname}
+                                {card.lastFourDigits && ` (**** ${card.lastFourDigits})`}
+                                {card.isDefault && ' (Padrão)'}
+                              </CategorySelectItemContent>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.cardId && (
+                    <ErrorMessage>{errors.cardId.message}</ErrorMessage>
+                  )}
+                </FormGroup>
+
+                <FormGroup>
+                  <StyledLabel htmlFor="installments">
+                    Parcelas <span aria-label="obrigatório">*</span>
+                  </StyledLabel>
+                  <Controller
+                    name="installments"
+                    control={control}
+                    render={({ field }) => {
+                      const installments = field.value;
+                      const amountValue = watch('amount');
+                      let installmentValue = '';
+                      
+                      if (installments && installments > 0 && amountValue) {
+                        // Converter valor formatado (R$ 3.000,00) para centavos
+                        const cleanedAmount = amountValue
+                          .replace(/[R$\s]/g, '')
+                          .replace(/\./g, '')
+                          .replace(',', '.');
+                        const numericAmount = parseFloat(cleanedAmount);
+                        
+                        if (!isNaN(numericAmount) && numericAmount > 0) {
+                          const valuePerInstallment = numericAmount / installments;
+                          installmentValue = `${installments}x ${new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          }).format(valuePerInstallment)}`;
+                        }
+                      }
+
+                      return (
+                        <div>
+                          <StyledInput
+                            id="installments"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="Ex: 3"
+                            disabled={!watch('cardId') || isLoading}
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              // Aceitar apenas números
+                              const numbers = e.target.value.replace(/\D/g, '');
+                              if (numbers) {
+                                const parsed = parseInt(numbers, 10);
+                                if (parsed >= 1 && parsed <= 24) {
+                                  field.onChange(parsed);
+                                } else if (parsed > 24) {
+                                  field.onChange(24);
+                                }
+                              } else {
+                                field.onChange(undefined);
+                              }
+                            }}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                          {installmentValue && (
+                            <InstallmentValueText>
+                              {installmentValue}
+                            </InstallmentValueText>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                  {errors.installments && (
+                    <ErrorMessage>{errors.installments.message}</ErrorMessage>
+                  )}
+                </FormGroup>
+              </FormRow>
+            )}
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
@@ -414,5 +684,31 @@ export function AddExpenseModal({
         </StyledDialogContent>
       </DialogPortal>
     </Dialog>
+
+    <AlertDialog open={showUpdateGroupDialog} onOpenChange={setShowUpdateGroupDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Atualizar grupo de despesas</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta despesa faz parte de um grupo parcelado. Deseja aplicar as alterações para todas as parcelas do grupo?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleUpdateGroupCancel}>
+            Cancelar
+          </AlertDialogCancel>
+          <Button
+            variant="outline"
+            onClick={() => handleUpdateGroupConfirm(false)}
+          >
+            Apenas esta parcela
+          </Button>
+          <AlertDialogAction onClick={() => handleUpdateGroupConfirm(true)}>
+            Todo o grupo
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

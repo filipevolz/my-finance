@@ -33,6 +33,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { incomesService } from '../../services/incomes.service';
 import { categoriesService } from '../../services/categories.service';
 import type { Category } from '../../services/categories.service';
@@ -92,9 +102,11 @@ export function Transactions() {
       categoryIcon: string;
       category: string;
       date: string;
+      purchaseDate?: string | null;
       amount: number;
       type: 'income' | 'expense';
       is_paid?: boolean;
+      groupId?: string | null;
     }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,6 +114,9 @@ export function Transactions() {
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const [showDeleteGroupDialog, setShowDeleteGroupDialog] = useState(false);
+  const [pendingDeleteExpenseId, setPendingDeleteExpenseId] = useState<string | null>(null);
+  const [pendingDeleteGroupId, setPendingDeleteGroupId] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   // Filtros aplicados (usados na busca)
   const [appliedFilters, setAppliedFilters] = useState<{
@@ -281,9 +296,16 @@ export function Transactions() {
       const transactionsInReais = response.data.map((trans) => {
         const dateParts = trans.date.split('-');
         const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+        const formattedPurchaseDate = trans.purchaseDate
+          ? (() => {
+              const purchaseParts = trans.purchaseDate.split('-');
+              return `${purchaseParts[2]}/${purchaseParts[1]}/${purchaseParts[0]}`;
+            })()
+          : null;
         return {
           ...trans,
           date: formattedDate,
+          purchaseDate: formattedPurchaseDate,
           amount: trans.amount / 100,
         };
       });
@@ -355,17 +377,50 @@ export function Transactions() {
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
-    if (
-      !confirm('Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.')
-    ) {
-      return;
-    }
     try {
-      await expensesService.delete(expenseId);
+      // Buscar a expense para verificar se tem groupId
+      const expenseResponse = await expensesService.findOne(expenseId);
+      const expense = expenseResponse.data;
+
+      // Verificar se tem groupId (pode ser null, undefined ou string vazia)
+      if (expense.groupId && expense.groupId.trim() !== '') {
+        // Se tem groupId, mostrar diálogo perguntando se quer excluir todo o grupo
+        setPendingDeleteExpenseId(expenseId);
+        setPendingDeleteGroupId(expense.groupId);
+        setShowDeleteGroupDialog(true);
+      } else {
+        // Se não tem groupId, excluir normalmente
+        if (
+          !confirm('Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.')
+        ) {
+          return;
+        }
+        await expensesService.delete(expenseId);
+        void loadTransactions();
+      }
+    } catch (error) {
+      console.error('Erro ao excluir despesa:', error);
+      alert('Erro ao excluir despesa. Tente novamente.');
+    }
+  };
+
+  const handleDeleteGroupConfirm = async (deleteGroup: boolean) => {
+    if (!pendingDeleteExpenseId) return;
+
+    try {
+      if (deleteGroup && pendingDeleteGroupId) {
+        await expensesService.deleteGroup(pendingDeleteGroupId);
+      } else {
+        await expensesService.delete(pendingDeleteExpenseId);
+      }
       void loadTransactions();
     } catch (error) {
       console.error('Erro ao excluir despesa:', error);
       alert('Erro ao excluir despesa. Tente novamente.');
+    } finally {
+      setShowDeleteGroupDialog(false);
+      setPendingDeleteExpenseId(null);
+      setPendingDeleteGroupId(null);
     }
   };
 
@@ -414,6 +469,7 @@ export function Transactions() {
     (appliedDateRange?.from && appliedDateRange?.to);
 
   return (
+    <>
     <TransactionsWrapper>
       <Header />
       <TransactionsMain>
@@ -742,7 +798,21 @@ export function Transactions() {
                       <TransactionMethod>{transaction.category}</TransactionMethod>
                     </TransactionCell>
                     <TransactionCell>
-                      <TransactionDate>{transaction.date}</TransactionDate>
+                      <TransactionDate>
+                        {transaction.type === 'expense' && transaction.purchaseDate
+                          ? (() => {
+                              const dateParts = transaction.purchaseDate.split('-');
+                              return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                            })()
+                          : transaction.date}
+                      </TransactionDate>
+                    </TransactionCell>
+                    <TransactionCell>
+                      <TransactionDate>
+                        {transaction.type === 'expense' && transaction.purchaseDate
+                          ? transaction.date
+                          : '-'}
+                      </TransactionDate>
                     </TransactionCell>
                     <TransactionCell>
                       <TransactionAmount $type={transaction.type}>
@@ -837,5 +907,25 @@ export function Transactions() {
         expenseId={editingExpenseId}
       />
     </TransactionsWrapper>
+
+    <AlertDialog open={showDeleteGroupDialog} onOpenChange={setShowDeleteGroupDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir grupo de despesas</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta despesa faz parte de um grupo parcelado. Deseja excluir apenas esta parcela ou todo o grupo?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => handleDeleteGroupConfirm(false)}>
+            Apenas esta parcela
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={() => handleDeleteGroupConfirm(true)}>
+            Todo o grupo
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

@@ -5,12 +5,14 @@ import { ExpensesController } from './expenses.controller';
 import { Expense } from './expense.entity';
 import { AuthModule } from '../auth/auth.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { CardsModule } from '../cards/cards.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Expense]),
     AuthModule,
     CategoriesModule,
+    CardsModule,
   ],
   controllers: [ExpensesController],
   providers: [ExpensesService],

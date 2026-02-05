@@ -20,7 +20,6 @@ O projeto é um monorepo com duas partes principais:
 
 ### Estilização
 - *Usar styled-components* para estilização customizada quando shadcn/ui não fornecer o componente necessário
-- Componentes shadcn podem ser estilizados usando Tailwind CSS (já configurado) ou styled-components quando necessário
 - *NÃO usar* CSS modules ou classes CSS tradicionais
 - O arquivo global.css deve conter apenas reset básico e estilos globais mínimos
 - Usar ThemeProvider do styled-components para temas e variáveis quando necessário
@@ -87,8 +86,6 @@ O projeto é um monorepo com duas partes principais:
 
 ### Estrutura de Componentes
 - Cada componente deve ter sua própria pasta
-- Usar arquivo index.tsx ou index.ts para exportação
-- Componentes styled devem ser definidos no mesmo arquivo ou em arquivo separado styles.ts
 - Nomenclatura: PascalCase para componentes, camelCase para styled components
 
 Exemplo:
@@ -162,10 +159,8 @@ const form = useForm<z.infer<typeof formSchema>>({
 ### Estados de Loading e Feedback
 - *SEMPRE implementar estado de loading em botões* que fazem requisições (submissões de formulários, ações assíncronas)
 - *Desabilitar botão durante o loading* para evitar múltiplos cliques e requisições duplicadas
-- Usar componente Button do shadcn/ui com prop disabled quando isLoading for true
-- Mostrar indicador visual de loading no botão (spinner ou texto "Carregando...")
+- Mostrar indicador visual de loading no botão (spinner)
 - Para páginas que carregam dados, *SEMPRE usar Skeleton do shadcn/ui* para melhorar UX durante o carregamento
-- Instalar skeleton quando necessário: npx shadcn@latest add skeleton
 - Exemplo de uso em botão:
 typescript
 const [isLoading, setIsLoading] = useState(false);
@@ -266,47 +261,8 @@ typescript
 - NestJS 11+
 - TypeScript 5.7+
 
-## Verificação e Qualidade de Código
-
-### Antes de Finalizar Alterações
-- *SEMPRE executar verificações* antes de considerar código pronto:
-  - Backend: npm run check (verifica lint, format e build)
-  - Frontend: Verificar lint e formatação antes de finalizar
-
-### Backend - NestJS
-- Executar npm run lint:check para verificar erros de lint
-- Executar npm run format:check para verificar formatação
-- Executar npm run check para verificação completa (lint + format + build)
-- Corrigir automaticamente com npm run lint (corrige lint) e npm run format (formata código)
-- *SEMPRE verificar que o código compila* antes de considerar pronto (npm run build)
-
-### Frontend - React
-- Executar npm run lint:check para verificar erros de lint
-- Executar npm run format:check para verificar formatação
-- Executar npm run check para verificação completa (lint + format + build)
-- Corrigir automaticamente com npm run lint (corrige lint) e npm run format (formata código)
-- *SEMPRE verificar que o código compila* antes de considerar pronto (npm run build)
-
-### Scripts Disponíveis (Backend)
-- npm run lint:check - Verifica erros de lint sem corrigir
-- npm run lint - Verifica e corrige erros de lint automaticamente
-- npm run format:check - Verifica formatação sem alterar arquivos
-- npm run format - Formata todos os arquivos automaticamente
-- npm run check - Verificação completa (lint + format + build)
-- npm run build - Compila o projeto e verifica erros de TypeScript
-
-### Scripts Disponíveis (Frontend)
-- npm run lint:check - Verifica erros de lint sem corrigir
-- npm run lint - Verifica e corrige erros de lint automaticamente
-- npm run format:check - Verifica formatação sem alterar arquivos
-- npm run format - Formata todos os arquivos automaticamente
-- npm run check - Verificação completa (lint + format + build)
-- npm run build - Compila o projeto e verifica erros de TypeScript
-
 ## Observações Importantes
-
 - *SEMPRE* seguir estas regras ao criar ou modificar código
-- *SEMPRE executar verificações* (npm run check no backend e frontend) antes de considerar código pronto
 - Quando houver dúvida, priorizar consistência com o código existente
 - Ao adicionar novas funcionalidades, manter a arquitetura estabelecida
 - Documentar código complexo quando necessário

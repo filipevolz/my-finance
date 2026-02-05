@@ -91,9 +91,6 @@ export class CategoriesService {
           category.icon = seedCategory.icon;
           await this.categoriesRepository.save(category);
           updatedCount++;
-          console.log(
-            `✅ Atualizado ícone da categoria "${category.name}" (${category.type}): ${category.icon} → ${seedCategory.icon}`,
-          );
         } else {
           skippedCount++;
         }
@@ -103,9 +100,5 @@ export class CategoriesService {
         );
       }
     }
-
-    console.log(
-      `✅ Atualização de ícones concluída! ${updatedCount} atualizadas, ${skippedCount} já estavam atualizadas.`,
-    );
   }
 }

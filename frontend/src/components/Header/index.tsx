@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Settings, Moon, Sun, LogOut, User, Menu, ChartLine, List, LayoutDashboard } from 'lucide-react';
+import { Settings, Moon, Sun, LogOut, User, Menu, ChartLine, List, LayoutDashboard, CreditCard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Logo } from '../Logo';
@@ -149,6 +149,10 @@ export function Header() {
             <DropdownMenuItem>
               <User size={20} />
               Conta
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/cards')}>
+              <CreditCard size={20} />
+              Cartões
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut size={20} />

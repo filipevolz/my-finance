@@ -15,6 +15,7 @@ import { ExpensesService } from '../expenses/expenses.service';
 import { Expense } from '../expenses/expense.entity';
 import { CategoriesService } from '../categories/categories.service';
 import { CategoryType } from '../categories/category.entity';
+import { dateOnlyToString } from 'src/helpers/dateOnlyToString';
 
 @Injectable()
 export class IncomesService {
@@ -152,10 +153,6 @@ export class IncomesService {
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
 
-    console.log(
-      `[findByDateRange] userId: ${userId}, startDate: ${startDateStr}, endDate: ${endDateStr}`,
-    );
-
     const result = await this.incomesRepository
       .createQueryBuilder('income')
       .where('income.user_id = :userId', { userId })
@@ -164,13 +161,10 @@ export class IncomesService {
       .orderBy('income.date', 'DESC')
       .getMany();
 
-    console.log(`[findByDateRange] Found ${result.length} records`);
-
     // Verificar quantos registros existem para esse userId sem filtro de data
     const totalForUser = await this.incomesRepository.count({
       where: { userId },
     });
-    console.log(`[findByDateRange] Total records for userId: ${totalForUser}`);
 
     return result;
   }
@@ -214,10 +208,6 @@ export class IncomesService {
     // Ajustar para incluir todo o dia final
     endDate.setHours(23, 59, 59, 999);
 
-    console.log(
-      `[findByPeriod] userId: ${userId}, period: ${period}, startDate: ${startDate.toISOString().split('T')[0]}, endDate: ${endDate.toISOString().split('T')[0]}`,
-    );
-
     return await this.findByDateRange(userId, startDate, endDate);
   }
 
@@ -243,14 +233,10 @@ export class IncomesService {
     } else {
       currentIncomes = await this.findAll(userId);
     }
-    console.log(
-      `[getStats] userId: ${userId}, period: ${period}, incomes found: ${currentIncomes.length}`,
-    );
     const currentIncome = currentIncomes.reduce(
       (sum, income) => sum + Number(income.amount),
       0,
     );
-    console.log(`[getStats] currentIncome (cents): ${currentIncome}`);
 
     // Se não houver período ou for range customizado, não calcular mudanças percentuais
     if (!period || (startDate && endDate)) {
@@ -502,6 +488,7 @@ export class IncomesService {
       categoryIcon: string;
       category: string;
       date: string;
+      purchaseDate?: string | null;
       amount: number;
       type: 'income' | 'expense';
       is_paid?: boolean;
@@ -522,9 +509,6 @@ export class IncomesService {
       take: limit,
     });
 
-    console.log('[getLatestTransactions] userId:', userId);
-    console.log('[getLatestTransactions] incomes found:', incomes.length);
-
     // Buscar últimas despesas ordenadas por createdAt
     const expenses = await this.expensesRepository
       .createQueryBuilder('expense')
@@ -533,12 +517,9 @@ export class IncomesService {
       .limit(limit)
       .getMany();
 
-    console.log('[getLatestTransactions] expenses found:', expenses.length);
-
     // Converter para formato unificado
     const incomeTransactions = incomes.map((income) => {
-      const dateObj = income.date instanceof Date ? income.date : new Date(income.date);
-      const dateStr = dateObj.toISOString().split('T')[0];
+      const dateStr = dateOnlyToString(income.date);
       const categoryIcon: string = categoryMap.get(income.category) || '💰';
 
       return {
@@ -554,8 +535,10 @@ export class IncomesService {
     });
 
     const expenseTransactions = expenses.map((expense) => {
-      const dateObj = expense.date instanceof Date ? expense.date : new Date(expense.date);
-      const dateStr = dateObj.toISOString().split('T')[0];
+      const dateStr = dateOnlyToString(expense.date);
+      const purchaseDateStr = expense.purchaseDate 
+        ? dateOnlyToString(expense.purchaseDate) 
+        : null;
       const categoryIcon: string = categoryMap.get(expense.category) || '💰';
 
       return {
@@ -563,7 +546,8 @@ export class IncomesService {
         description: expense.name || expense.category, // Usar o nome do expense ou categoria como fallback
         categoryIcon,
         category: expense.category,
-        date: dateStr,
+        date: dateStr, // Data de vencimento/pagamento (para filtros)
+        purchaseDate: purchaseDateStr, // Data original da compra (para exibição)
         amount: Number(expense.amount),
         type: 'expense' as const,
         createdAt: expense.createdAt,
@@ -585,9 +569,6 @@ export class IncomesService {
       })
       .slice(0, limit)
       .map(({ createdAt, ...trans }) => trans); // Remover createdAt do resultado final
-
-    console.log('[getLatestTransactions] total transactions:', allTransactions.length);
-    console.log('[getLatestTransactions] transactions:', JSON.stringify(allTransactions, null, 2));
 
     return allTransactions;
   }
@@ -613,6 +594,7 @@ export class IncomesService {
       categoryIcon: string;
       category: string;
       date: string;
+      purchaseDate?: string | null;
       amount: number;
       type: 'income' | 'expense';
       is_paid?: boolean;
@@ -750,9 +732,7 @@ export class IncomesService {
 
     // Converter para formato unificado
     const incomeTransactions = incomes.map((income) => {
-      const dateObj =
-        income.date instanceof Date ? income.date : new Date(income.date);
-      const dateStr = dateObj.toISOString().split('T')[0];
+      const dateStr = dateOnlyToString(income.date);
       const categoryIcon: string = categoryMap.get(income.category) || '💰';
 
       return {
@@ -767,9 +747,10 @@ export class IncomesService {
     });
 
     const expenseTransactions = expenses.map((expense) => {
-      const dateObj =
-        expense.date instanceof Date ? expense.date : new Date(expense.date);
-      const dateStr = dateObj.toISOString().split('T')[0];
+      const dateStr = dateOnlyToString(expense.date);
+      const purchaseDateStr = expense.purchaseDate 
+        ? dateOnlyToString(expense.purchaseDate) 
+        : null;
       const categoryIcon: string = categoryMap.get(expense.category) || '💰';
 
       return {
@@ -777,7 +758,8 @@ export class IncomesService {
         description: expense.name || expense.category,
         categoryIcon,
         category: expense.category,
-        date: dateStr,
+        date: dateStr, // Data de vencimento/pagamento (para filtros)
+        purchaseDate: purchaseDateStr, // Data original da compra (para exibição)
         amount: Number(expense.amount),
         type: 'expense' as const,
         is_paid: expense.is_paid,
@@ -1230,8 +1212,8 @@ export class IncomesService {
 
     expenses.forEach((expense) => {
       const date = new Date(expense.date);
-      const dayOfWeek = date.getDay();
-      const dayOfMonth = date.getDate();
+      const dayOfWeek = date.getUTCDay();
+      const dayOfMonth = date.getUTCDate();
       const amount = Number(expense.amount);
 
       byDayOfWeek[dayOfWeek].total += amount;
@@ -1605,7 +1587,7 @@ export class IncomesService {
           name: expense.name,
           category: expense.category,
           amount,
-          date: expense.date.toISOString().split('T')[0],
+          date: dateOnlyToString(expense.date),
         };
       }
     });

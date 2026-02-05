@@ -125,7 +125,6 @@ export function AddIncomeModal({
         .findOne(incomeId)
         .then((response) => {
           const income = response.data;
-          console.log(income);
   
           // Corrige problema de timezone
           const dateStr = income.date.split('T')[0];

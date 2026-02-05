@@ -126,6 +126,7 @@ export const incomesService = {
       categoryIcon: string;
       category: string;
       date: string;
+      purchaseDate?: string | null;
       amount: number;
       type: 'income' | 'expense';
       is_paid?: boolean;
@@ -155,6 +156,7 @@ export const incomesService = {
       categoryIcon: string;
       category: string;
       date: string;
+      purchaseDate?: string | null;
       amount: number;
       is_paid?: boolean;
       type: 'income' | 'expense';

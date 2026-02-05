@@ -61,11 +61,13 @@ export class ExpensesController {
     @Param('id') id: string,
     @CurrentUser() userId: string,
     @Body(ValidationPipe) updateExpenseDto: UpdateExpenseDto,
+    @Query('updateGroup') updateGroup?: string,
   ) {
     const expense = await this.expensesService.update(
       id,
       userId,
       updateExpenseDto,
+      updateGroup === 'true',
     );
     return {
       message: 'Despesa atualizada com sucesso',
@@ -77,6 +79,24 @@ export class ExpensesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string, @CurrentUser() userId: string) {
     await this.expensesService.remove(id, userId);
+  }
+
+  @Get('group/:groupId')
+  async findByGroupId(
+    @Param('groupId') groupId: string,
+    @CurrentUser() userId: string,
+  ) {
+    const expenses = await this.expensesService.findByGroupId(groupId, userId);
+    return { data: expenses };
+  }
+
+  @Delete('group/:groupId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeGroup(
+    @Param('groupId') groupId: string,
+    @CurrentUser() userId: string,
+  ) {
+    await this.expensesService.removeGroup(groupId, userId);
   }
 
   @Get('category/:category')

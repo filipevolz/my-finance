@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Transactions } from './pages/Transactions';
 import { Analytics } from './pages/Analytics';
 import { Investments } from './pages/Investments';
+import { Cards } from './pages/Cards';
 
 export function App() {
   return (
@@ -16,6 +17,7 @@ export function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/investments" element={<Investments />} />
+        <Route path="/cards" element={<Cards />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
