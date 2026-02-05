@@ -741,7 +741,8 @@ export function Transactions() {
               <tr>
                 <th>Descrição</th>
                 <th>Categoria</th>
-                <th>Data</th>
+                <th>Data de Compra</th>
+                <th>Data de Vencimento</th>
                 <th>Valor</th>
                 <th>Pago</th>
                 <th></th>
@@ -760,6 +761,9 @@ export function Transactions() {
                       </TransactionCell>
                       <TransactionCell>
                         <Skeleton className="h-4 w-24" />
+                      </TransactionCell>
+                      <TransactionCell>
+                        <Skeleton className="h-4 w-20" />
                       </TransactionCell>
                       <TransactionCell>
                         <Skeleton className="h-4 w-20" />
@@ -800,18 +804,13 @@ export function Transactions() {
                     <TransactionCell>
                       <TransactionDate>
                         {transaction.type === 'expense' && transaction.purchaseDate
-                          ? (() => {
-                              const dateParts = transaction.purchaseDate.split('-');
-                              return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                            })()
+                          ? transaction.purchaseDate
                           : transaction.date}
                       </TransactionDate>
                     </TransactionCell>
                     <TransactionCell>
                       <TransactionDate>
-                        {transaction.type === 'expense' && transaction.purchaseDate
-                          ? transaction.date
-                          : '-'}
+                        {transaction.date}
                       </TransactionDate>
                     </TransactionCell>
                     <TransactionCell>
