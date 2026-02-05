@@ -114,7 +114,6 @@ export function Cards() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRecalculating, setIsRecalculating] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -138,20 +137,6 @@ export function Cards() {
       setCards([]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleRecalculateLimits = async () => {
-    setIsRecalculating(true);
-    try {
-      const response = await cardsService.recalculateAllLimits();
-      setCards(response.data);
-      alert('Limites recalculados com sucesso!');
-    } catch (error) {
-      console.error('Erro ao recalcular limites:', error);
-      alert('Erro ao recalcular limites. Tente novamente.');
-    } finally {
-      setIsRecalculating(false);
     }
   };
 
@@ -311,13 +296,6 @@ export function Cards() {
                 Gerencie seus cartões de crédito e defina um como padrão
               </PageDescription>
             </div>
-            {/* <Button
-              onClick={handleRecalculateLimits}
-              disabled={isRecalculating}
-              variant="outline"
-            >
-              {isRecalculating ? 'Recalculando...' : 'Recalcular Limites'}
-            </Button> */}
           </PageHeader>
 
           {isLoading ? (
