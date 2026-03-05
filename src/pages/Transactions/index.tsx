@@ -9,7 +9,6 @@ import {
   Pencil,
   Trash2,
   MoreVertical,
-  FileText,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
