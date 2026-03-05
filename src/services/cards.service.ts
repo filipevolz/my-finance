@@ -88,6 +88,13 @@ export const cardsService = {
     return response.data;
   },
 
+  async markAsPaid(id: string): Promise<UpdateCardResponse> {
+    const response = await api.patch<UpdateCardResponse>(
+      `/cards/${id}/mark-as-paid`,
+    );
+    return response.data;
+  },
+
   async delete(id: string): Promise<void> {
     await api.delete(`/cards/${id}`);
   },

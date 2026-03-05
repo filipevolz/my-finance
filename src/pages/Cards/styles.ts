@@ -345,3 +345,101 @@ export const StyledDialogClose = styled(DialogPrimitive.Close)`
     outline-offset: 0.125rem;
   }
 `;
+
+export const ImportButtonWrap = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const CardHeaderInner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const ImportSuccessWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+export const ImportSuccessMessage = styled.p`
+  color: ${(props) => props.theme.success ?? '#22c55e'};
+  font-weight: 600;
+`;
+
+export const ImportErrorsBox = styled.div`
+  font-size: 0.875rem;
+  color: ${(props) => props.theme.textSecondary};
+`;
+
+export const ImportErrorsList = styled.ul`
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+`;
+
+export const StyledSelect = styled.select`
+  padding: 0.625rem 1rem;
+  border-radius: 0.375rem;
+  border: 0.0625rem solid ${(props) => props.theme.border};
+  background-color: ${(props) => props.theme.surface};
+  font-size: 0.875rem;
+  width: 100%;
+`;
+
+export const FileInputWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const FileInputNative = styled.input.attrs({ type: 'file' })`
+  position: absolute;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  padding: 0;
+  margin: -0.0625rem;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
+export const FileInputTrigger = styled.label`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: 0.0625rem solid ${(props) => props.theme.border};
+  background-color: ${(props) => props.theme.surface};
+  color: ${(props) => props.theme.text};
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  width: fit-content;
+
+  &:hover {
+    background-color: ${(props) => props.theme.surfaceSecondary};
+    border-color: ${(props) => props.theme.primary};
+  }
+
+  &:focus-visible {
+    outline: 0.125rem solid ${(props) => props.theme.primary};
+    outline-offset: 0.125rem;
+  }
+`;
+
+export const FileNameHint = styled.span`
+  font-size: 0.75rem;
+  color: ${(props) => props.theme.textSecondary};
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+`;

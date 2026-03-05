@@ -50,6 +50,12 @@ export interface CreateExpenseResponse {
   data: Expense;
 }
 
+export interface ImportFromPdfResponse {
+  message: string;
+  data: Expense[];
+  errors?: string[];
+}
+
 export interface UpdateExpenseResponse {
   message: string;
   data: Expense;
@@ -60,6 +66,25 @@ type Period = 'this-month' | 'last-month' | 'this-year' | 'last-12-months';
 export const expensesService = {
   async create(data: CreateExpenseRequest): Promise<CreateExpenseResponse> {
     const response = await api.post<CreateExpenseResponse>('/expenses', data);
+    return response.data;
+  },
+
+  async importFromPdf(
+    file: File,
+    cardId?: string | null,
+  ): Promise<ImportFromPdfResponse> {
+    if (!file || !(file instanceof File)) {
+      throw new Error('Arquivo PDF é obrigatório.');
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    if (cardId) {
+      formData.append('cardId', cardId);
+    }
+    const response = await api.post<ImportFromPdfResponse>(
+      '/expenses/import-from-pdf',
+      formData,
+    );
     return response.data;
   },
 

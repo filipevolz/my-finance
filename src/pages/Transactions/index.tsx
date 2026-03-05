@@ -9,6 +9,7 @@ import {
   Pencil,
   Trash2,
   MoreVertical,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -47,6 +48,15 @@ import { incomesService } from '../../services/incomes.service';
 import { categoriesService } from '../../services/categories.service';
 import type { Category } from '../../services/categories.service';
 import { expensesService } from '../../services/expenses.service';
+import { bankStatementService } from '../../services/bankStatement.service';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { IconRenderer } from '../../utils/iconMapper';
 import {
   TransactionsWrapper,
@@ -154,6 +164,15 @@ export function Transactions() {
   const [showFilters, setShowFilters] = useState(false);
   const [minAmountDisplay, setMinAmountDisplay] = useState('');
   const [maxAmountDisplay, setMaxAmountDisplay] = useState('');
+  const [isImportExtractModalOpen, setIsImportExtractModalOpen] = useState(false);
+  const [importExtractFile, setImportExtractFile] = useState<File | null>(null);
+  const [isImportingExtract, setIsImportingExtract] = useState(false);
+  const [importExtractError, setImportExtractError] = useState<string | null>(null);
+  const [importExtractResult, setImportExtractResult] = useState<{
+    expensesCreated: number;
+    incomesCreated: number;
+    errors: string[];
+  } | null>(null);
 
   // Função helper para formatar valor monetário brasileiro
   const formatCurrency = (cents: number | undefined): string => {
@@ -429,6 +448,50 @@ export function Transactions() {
     }
   };
 
+  const handleCloseImportExtractModal = () => {
+    setIsImportExtractModalOpen(false);
+    setImportExtractFile(null);
+    setImportExtractError(null);
+    setImportExtractResult(null);
+  };
+
+  const handleImportExtractSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setImportExtractError(null);
+    setImportExtractResult(null);
+    if (!importExtractFile) {
+      setImportExtractError('Selecione um arquivo PDF.');
+      return;
+    }
+    if (importExtractFile.type !== 'application/pdf') {
+      setImportExtractError('Apenas arquivos PDF são aceitos.');
+      return;
+    }
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (importExtractFile.size > MAX_SIZE) {
+      setImportExtractError('Arquivo muito grande. Tamanho máximo: 10 MB.');
+      return;
+    }
+    setIsImportingExtract(true);
+    try {
+      const result = await bankStatementService.importFromPdf(importExtractFile);
+      setImportExtractResult({
+        expensesCreated: result.data.expensesCreated,
+        incomesCreated: result.data.incomesCreated,
+        errors: result.data.errors ?? [],
+      });
+      void loadTransactions();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : null;
+      setImportExtractError(msg || 'Erro ao importar extrato. Tente novamente.');
+    } finally {
+      setIsImportingExtract(false);
+    }
+  };
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const months = [
@@ -524,6 +587,16 @@ export function Transactions() {
                 Limpar filtros
               </ClearFiltersButton>
             )}
+            {/* <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsImportExtractModalOpen(true)}
+              style={{ marginLeft: 'auto' }}
+            >
+              <FileText size={16} style={{ marginRight: 8 }} />
+              Importar extrato (PDF)
+            </Button> */}
           </SearchAndFiltersContainer>
 
           {showFilters && (
@@ -1056,6 +1129,74 @@ export function Transactions() {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <Dialog
+      open={isImportExtractModalOpen}
+      onOpenChange={(open) => {
+        setIsImportExtractModalOpen(open);
+        if (!open) handleCloseImportExtractModal();
+      }}
+    >
+      <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Importar extrato conta corrente (PDF)</DialogTitle>
+            <DialogDescription>
+              Envie o PDF do extrato Itaú. As saídas serão cadastradas como despesas e as entradas como receitas (categoria Outros).
+            </DialogDescription>
+          </DialogHeader>
+          {importExtractResult !== null ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p style={{ margin: 0 }}>
+                {importExtractResult.expensesCreated} saída(s) e {importExtractResult.incomesCreated} entrada(s) importada(s).
+              </p>
+              {importExtractResult.errors.length > 0 && (
+                <div style={{ fontSize: '0.875rem', color: 'var(--destructive)' }}>
+                  <strong>Alguns itens não foram importados:</strong>
+                  <ul style={{ margin: '0.5rem 0 0 1rem', padding: 0 }}>
+                    {importExtractResult.errors.slice(0, 5).map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                    {importExtractResult.errors.length > 5 && (
+                      <li>… e mais {importExtractResult.errors.length - 5} erro(s)</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <Button onClick={handleCloseImportExtractModal}>Fechar</Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleImportExtractSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
+              <div>
+                <label htmlFor="import-extract-file" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                  Arquivo PDF
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <input
+                    id="import-extract-file"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => setImportExtractFile(e.target.files?.[0] ?? null)}
+                    style={{ fontSize: '0.875rem' }}
+                  />
+                  {importExtractFile && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }} title={importExtractFile.name}>
+                      {importExtractFile.name} ({(importExtractFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  )}
+                </div>
+              </div>
+              {importExtractError && (
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--destructive)' }}>{importExtractError}</p>
+              )}
+              <Button type="submit" disabled={isImportingExtract}>
+                {isImportingExtract ? 'Importando...' : 'Importar'}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+    </Dialog>
     </>
   );
 }

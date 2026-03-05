@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Plus, Pencil, Trash2, MoreVertical, CreditCard, Star } from 'lucide-react';
+import { CalendarIcon, Plus, Pencil, Trash2, MoreVertical, CreditCard, Star, FileText, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header } from '../../components/Header';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +21,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Dialog, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
 import { cardsService } from '../../services/cards.service';
@@ -29,6 +36,7 @@ import type {
   UpdateCardRequest,
   Card,
 } from '../../services/cards.service';
+import { expensesService } from '../../services/expenses.service';
 import {
   CardsWrapper,
   CardsMain,
@@ -61,6 +69,16 @@ import {
   CheckboxGroup,
   CheckboxLabel,
   AddCardButton,
+  ImportButtonWrap,
+  CardHeaderInner,
+  ImportSuccessWrapper,
+  ImportSuccessMessage,
+  ImportErrorsBox,
+  ImportErrorsList,
+  FileInputWrapper,
+  FileInputNative,
+  FileInputTrigger,
+  FileNameHint,
 } from './styles';
 
 const cardSchema = z.object({
@@ -114,6 +132,13 @@ export function Cards() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importCardId, setImportCardId] = useState<string>('');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccessCount, setImportSuccessCount] = useState<number | null>(null);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -272,6 +297,63 @@ export function Cards() {
     }
   };
 
+  const handleMarkAsPaid = async (cardId: string) => {
+    try {
+      await cardsService.markAsPaid(cardId);
+      await loadCards();
+    } catch (error) {
+      console.error('Erro ao marcar cartão como pago:', error);
+      alert('Erro ao marcar cartão como pago. Tente novamente.');
+    }
+  };
+
+  const handleCloseImportModal = () => {
+    setIsImportModalOpen(false);
+    setImportCardId('');
+    setImportFile(null);
+    setImportError(null);
+    setImportSuccessCount(null);
+    setImportErrors([]);
+  };
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setImportError(null);
+    setImportErrors([]);
+    if (!importFile) {
+      setImportError('Selecione um arquivo PDF.');
+      return;
+    }
+    if (importFile.type !== 'application/pdf') {
+      setImportError('Apenas arquivos PDF são aceitos.');
+      return;
+    }
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (importFile.size > MAX_SIZE) {
+      setImportError('Arquivo muito grande. Tamanho máximo: 10 MB.');
+      return;
+    }
+    setIsImporting(true);
+    try {
+      const result = await expensesService.importFromPdf(
+        importFile,
+        importCardId || null,
+      );
+      setImportSuccessCount(result.data.length);
+      if (result.errors?.length) {
+        setImportErrors(result.errors);
+      }
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : null;
+      setImportError(msg || 'Erro ao importar fatura. Tente novamente.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <CardsWrapper>
@@ -296,6 +378,16 @@ export function Cards() {
                 Gerencie seus cartões de crédito e defina um como padrão
               </PageDescription>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsImportModalOpen(true)}
+            >
+              <ImportButtonWrap>
+                <FileText size={18} />
+                Importar fatura (PDF)
+              </ImportButtonWrap>
+            </Button>
           </PageHeader>
 
           {isLoading ? (
@@ -304,9 +396,9 @@ export function Cards() {
                 <CardItem key={`skeleton-${index}`}>
                   <CardHeader>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <CardHeaderInner>
                         <Skeleton className="h-5 w-32" />
-                      </div>
+                      </CardHeaderInner>
                     </div>
                     <Skeleton className="h-8 w-8 rounded" />
                   </CardHeader>
@@ -364,6 +456,14 @@ export function Cards() {
                           >
                             <Star className="mr-2 h-4 w-4" />
                             Definir como padrão
+                          </DropdownMenuItem>
+                        )}
+                        {(card.usedLimit ?? 0) > 0 && (
+                          <DropdownMenuItem
+                            onClick={() => handleMarkAsPaid(card.id)}
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Cartão pago (liberar limite)
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => handleEdit(card.id)}>
@@ -683,6 +783,99 @@ export function Cards() {
                     : 'Criar Cartão'}
               </SubmitButton>
             </ModalForm>
+          </StyledDialogContent>
+        </DialogPortal>
+      </Dialog>
+
+      <Dialog open={isImportModalOpen} onOpenChange={(open) => !open && handleCloseImportModal()}>
+        <DialogPortal>
+          <DialogOverlay />
+          <StyledDialogContent>
+            <StyledDialogClose
+              aria-label="Fechar"
+              onClick={handleCloseImportModal}
+            >
+              <X size={20} />
+            </StyledDialogClose>
+            <StyledDialogHeader>
+              <StyledDialogTitle>Importar fatura (PDF)</StyledDialogTitle>
+              <StyledDialogDescription>
+                Envie o PDF da fatura do cartão. A IA extrairá os lançamentos e cadastrará as despesas. Selecione o cartão para vincular.
+              </StyledDialogDescription>
+            </StyledDialogHeader>
+            {importSuccessCount !== null ? (
+              <ImportSuccessWrapper>
+                <ImportSuccessMessage>
+                  {importSuccessCount} despesa(s) importada(s) com sucesso.
+                </ImportSuccessMessage>
+                {importErrors.length > 0 && (
+                  <ImportErrorsBox>
+                    <strong>Alguns itens não foram importados:</strong>
+                    <ImportErrorsList>
+                      {importErrors.slice(0, 5).map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                      {importErrors.length > 5 && (
+                        <li>… e mais {importErrors.length - 5} erro(s)</li>
+                      )}
+                    </ImportErrorsList>
+                  </ImportErrorsBox>
+                )}
+                <Button onClick={() => { handleCloseImportModal(); navigate('/transactions'); }}>
+                  Ver transações
+                </Button>
+                <Button variant="outline" onClick={handleCloseImportModal}>
+                  Fechar
+                </Button>
+              </ImportSuccessWrapper>
+            ) : (
+              <ModalForm onSubmit={handleImportSubmit}>
+                <FormGroup>
+                  <StyledLabel htmlFor="import-card">Cartão</StyledLabel>
+                  <Select
+                    value={importCardId || 'none'}
+                    onValueChange={(v) => setImportCardId(v === 'none' ? '' : v)}
+                  >
+                    <SelectTrigger id="import-card" className="w-full">
+                      <SelectValue placeholder="Selecione o cartão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {cards.map((card) => (
+                        <SelectItem key={card.id} value={card.id}>
+                          {card.nickname}
+                          {card.lastFourDigits ? ` **** ${card.lastFourDigits}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+                <FormGroup>
+                  <StyledLabel htmlFor="import-file">Arquivo PDF</StyledLabel>
+                  <FileInputWrapper>
+                    <FileInputNative
+                      id="import-file"
+                      accept="application/pdf"
+                      onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                    />
+                    <FileInputTrigger htmlFor="import-file">
+                      {importFile ? 'Trocar arquivo' : 'Escolher arquivo'}
+                    </FileInputTrigger>
+                    {importFile && (
+                      <FileNameHint title={importFile.name}>
+                        {importFile.name} ({(importFile.size / 1024).toFixed(1)} KB)
+                      </FileNameHint>
+                    )}
+                  </FileInputWrapper>
+                </FormGroup>
+                {importError && (
+                  <ErrorMessage>{importError}</ErrorMessage>
+                )}
+                <SubmitButton type="submit" disabled={isImporting}>
+                  {isImporting ? 'Importando...' : 'Importar'}
+                </SubmitButton>
+              </ModalForm>
+            )}
           </StyledDialogContent>
         </DialogPortal>
       </Dialog>
